@@ -70,6 +70,13 @@ export interface BaseFixture {
   brightness: number; // 0-100 (master brightness)
 }
 
+export interface LaserData {
+  id: string;
+  orientation: LaserOrientation;
+  brightness: number; // 0-255
+  dmxAddress: number;
+}
+
 // Moving Head fixture (MH1, MH2)
 export interface MovingHeadFixture extends BaseFixture {
   type: FixtureType.MovingHead;
@@ -150,6 +157,8 @@ export interface ShockerFixture extends BaseFixture {
 export type Fixture = MovingHeadFixture | SaberBeamFixture | JoltFixture | ShockerFixture;
 
 export interface ControlsState {
+  lasers?: LaserData[];
+
   dimmer: number;
   strobePulseRate: number; // New combined rate
   strobeOrPulse: 'strobe' | 'pulse'; // New effect toggle

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import io from 'socket.io-client';
 import LaserSimulator from './components/LaserSimulator';
 import Controls from './components/Controls';
-import { Laser, ControlsState, ViewMode } from './types';
+import { Laser, LaserData, LaserOrientation, ControlsState, ViewMode } from './types';
 import { INITIAL_CONTROLS_STATE, updateFixtureDmxValues } from './constants';
 
 const socket = io('http://localhost:5000');
@@ -22,8 +22,22 @@ function App() {
 
     socket.on('connect', () => setIsConnected(true));
     socket.on('disconnect', () => setIsConnected(false));
-    socket.on('state_update', (serverState: { lasers: Laser[] }) => {
-      setLasers(serverState.lasers);
+    socket.on('state_update', (serverState: { lasers: any[] }) => {
+      setLasers(serverState.lasers); // Keep existing functionality
+      
+      if (serverState.lasers) {
+        const laserData: LaserData[] = serverState.lasers.map((laser: any) => ({
+          id: laser.id,                    // "top-0", "side-5", etc.
+          orientation: laser.orientation === 'top' ? LaserOrientation.Top : LaserOrientation.Side,
+          brightness: laser.brightness,    // Current DMX output (0-255)
+          dmxAddress: laser.dmx_address   // DMX channel number
+        }));
+        
+        setControls(prev => ({
+          ...prev,
+          lasers: laserData
+        }));
+      }
     });
 
     return () => {
@@ -95,6 +109,9 @@ function App() {
             control: 'fixtures',
             value: currentValue,
           });
+          continue;
+        } else if (typedKey === 'lasers') {
+          // Don't send laser data back to server - it's read-only
           continue;
         } else {
           // Map other controls directly
