@@ -71,12 +71,12 @@ const createDefaultMovingHead = (id: string, startDmxAddress: number, x: number,
     position: { x, y },
     startDmxAddress,
     brightness,
-    panMove: 0,
-    tiltMove: 0,
+    panMove: 127, // Center position (0-255)
+    tiltMove: 127, // Center position (0-255)
     speed,
     dmxChannels: {
-      DMX_1_PANMOVE: 0, // Will be controlled by lighting system
-      DMX_2_TILTMOVE: 0, // Will be controlled by lighting system
+      DMX_1_PANMOVE: 127, // Center position
+      DMX_2_TILTMOVE: 127, // Center position
       DMX_3_COLORS: 13, // Red (fixed)
       DMX_4_GOBO: 0, // Open (fixed)
       DMX_5_SHUTTERSTROBE: 8, // Shutter Open (fixed)
@@ -172,24 +172,44 @@ const createDefaultShocker = (id: string, startDmxAddress: number, x: number, y:
   };
 };
 
+// Create default fixtures with positions as specified in the diagram
+const DEFAULT_FIXTURES = {
+  // Moving Heads
+  MH1: createDefaultMovingHead('MH1', 1, 0, 0),     // Top left (position 0,0)
+  MH2: createDefaultMovingHead('MH2', 12, 14, 14),  // Bottom right (position 14,14)
+  
+  // Saber Beams  
+  SA1: createDefaultSaberBeam('SA1', 23, 11, 0),    // Position (11,0)
+  SA2: createDefaultSaberBeam('SA2', 27, 14, 0),    // Position (14,0)
+  SA3: createDefaultSaberBeam('SA3', 31, 14, 3),    // Position (14,3)
+  
+  // Jolts
+  J1: createDefaultJolt('J1', 35, 7, 2),            // Position (8,2)  
+  J2: createDefaultJolt('J2', 47, 12, 7),           // Position (12,8)
+  
+  // Shockers
+  SH1: createDefaultShocker('SH1', 59, 2, 7),       // Position (2,8)
+  SH2: createDefaultShocker('SH2', 67, 7, 12),       // Position (8,2)
+};
+
 export const INITIAL_CONTROLS_STATE: ControlsState = {
   dimmer: 100,
-  strobePulseRate: 0, // New combined rate
-  strobeOrPulse: 'strobe', // Default to strobe
+  strobePulseRate: 0,
+  strobeOrPulse: 'strobe',
   effectApplication: EffectApplication.All,
   visualPreset: VisualPreset.Grid,
   scrollDirection: ScrollDirection.None,
-  laserMoveSpeed: 60,
+  laserMoveSpeed: 50,
   shockerSpeed: 50,
   saberSpeed: 50,
-  mhSpeed: 50, // New MH Speed slider
-  scrollLaserCount: 8,
-  scrollFade: 90,
+  mhSpeed: 50,
+  scrollLaserCount: 5,
+  scrollFade: 50,
   scrollBuildEffect: false,
   scrollPhase: 0,
   loopEffect: false,
-  hazeDensity: 80,
-  linearGradient: 95,
+  hazeDensity: 30,
+  linearGradient: 70,
   showLaserOrigins: false,
   beatSyncEnabled: false,
   bpm: 140,
@@ -198,18 +218,8 @@ export const INITIAL_CONTROLS_STATE: ControlsState = {
   beatLaserMoveSpeedRate: 'Off',
   beatShockerSpeedRate: 'Off',
   beatSaberSpeedRate: 'Off',
-  beatMhSpeedRate: 'Off', // New beat rate for MH Speed
+  beatMhSpeedRate: 'Off',
   
-  // Default fixture configurations with spread out positions
-  fixtures: {
-    MH1: createDefaultMovingHead('MH1', 29, 0, 0), // Top left
-    MH2: createDefaultMovingHead('MH2', 40, 14, 14), // Bottom right
-    SA1: createDefaultSaberBeam('SA1', 51, 11, 0), // Top left of DJ table
-    SA2: createDefaultSaberBeam('SA2', 55, 14, 0), // Top right
-    SA3: createDefaultSaberBeam('SA3', 59, 14, 3), // Bottom right of DJ table
-    J1: createDefaultJolt('J1', 63, 8, 2), // Bottom-left
-    J2: createDefaultJolt('J2', 75, 12, 8), // Bottom-right
-    SH1: createDefaultShocker('SH1', 87, 2, 8), // Left center
-    SH2: createDefaultShocker('SH2', 95, 8, 12), // Right center
-  },
+  // Initialize with default fixtures
+  fixtures: DEFAULT_FIXTURES,
 };

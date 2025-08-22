@@ -29,10 +29,11 @@ function App() {
         const laserData: LaserData[] = serverState.lasers.map((laser: any) => ({
           id: laser.id,                    // "top-0", "side-5", etc.
           orientation: laser.orientation === 'top' ? LaserOrientation.Top : LaserOrientation.Side,
-          brightness: laser.brightness,    // Current DMX output (0-255)
-          dmxAddress: laser.dmx_address   // DMX channel number
+          brightness: laser.brightness,    // 0-255
+          dmxAddress: laser.dmx_address || 0,
         }));
         
+        // Update the controls state with the laser data
         setControls(prev => ({
           ...prev,
           lasers: laserData
@@ -130,7 +131,7 @@ function App() {
   };
 
   return (
-    <div className="bg-gray-900 text-white min-h-screen p-4 font-sans flex flex-col">
+    <div className="min-h-screen bg-gray-900 text-white flex flex-col p-4">
       {/* Header */}
       <header className="flex items-center justify-center gap-6 mb-6 flex-shrink-0">
         <h1 className="text-3xl font-bold text-red-500 tracking-wider">red.it.be l1ghts</h1>
@@ -147,7 +148,7 @@ function App() {
         {/* Control Buttons */}
         <div className="flex items-center gap-4">
           <button
-            onClick={() => setViewMode(prev => prev === 'landscape' ? 'pane' : 'landscape')}
+            onClick={() => setViewMode(viewMode === 'landscape' ? 'pane' : 'landscape')}
             className="px-4 py-2 rounded-md font-medium transition-colors duration-200 bg-gray-700 text-gray-300 hover:bg-gray-600"
           >
             {viewMode === 'landscape' ? 'Landscape' : 'Pane'}
@@ -188,7 +189,8 @@ function App() {
                       lasers={lasers} 
                       showLaserOrigins={controls.showLaserOrigins} 
                       hazeDensity={controls.hazeDensity} 
-                      linearGradient={controls.linearGradient} 
+                      linearGradient={controls.linearGradient}
+                      fixtures={controls.fixtures}
                    />
                </div>
              )}
@@ -207,6 +209,7 @@ function App() {
                   showLaserOrigins={controls.showLaserOrigins}
                   hazeDensity={controls.hazeDensity}
                   linearGradient={controls.linearGradient}
+                  fixtures={controls.fixtures}
                 />
               </div>
             )}
