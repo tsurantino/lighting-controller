@@ -1,5 +1,5 @@
-import React from 'react';
-import { ControlsState, VisualPreset, ScrollDirection, EffectApplication, BeatRate } from '../types';
+import React, { useState } from 'react';
+import { ControlsState, VisualPreset, ScrollDirection, EffectApplication, BeatRate, Fixture, FixtureType, MovingHeadFixture, SaberBeamFixture, JoltFixture, ShockerFixture } from '../types';
 
 interface ControlsProps {
   controls: ControlsState;
@@ -507,6 +507,207 @@ const BeatSyncControls: React.FC<{
   </div>
 );
 
+// Fixture Configuration Components
+const FixtureConfigTab: React.FC<{
+  fixture: Fixture;
+  onUpdate: (fixture: Fixture) => void;
+}> = ({ fixture, onUpdate }) => {
+  const handlePositionChange = (axis: 'x' | 'y', value: number) => {
+    onUpdate({
+      ...fixture,
+      position: {
+        ...fixture.position,
+        [axis]: value
+      }
+    });
+  };
+
+  const handleStartDmxChange = (value: number) => {
+    onUpdate({
+      ...fixture,
+      startDmxAddress: value
+    });
+  };
+
+  const renderFixtureSpecificConfig = () => {
+    switch (fixture.type) {
+      case FixtureType.MovingHead:
+        const mhFixture = fixture as MovingHeadFixture;
+        return (
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-gray-300">DMX Channels (Read-only)</h4>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="space-y-1">
+                <div>DMX_1_PANMOVE: {mhFixture.dmxChannels.DMX_1_PANMOVE}</div>
+                <div>DMX_2_TILTMOVE: {mhFixture.dmxChannels.DMX_2_TILTMOVE}</div>
+                <div>DMX_3_COLORS: {mhFixture.dmxChannels.DMX_3_COLORS}</div>
+                <div>DMX_4_GOBO: {mhFixture.dmxChannels.DMX_4_GOBO}</div>
+                <div>DMX_5_SHUTTERSTROBE: {mhFixture.dmxChannels.DMX_5_SHUTTERSTROBE}</div>
+                <div>DMX_6_DIMMER: {mhFixture.dmxChannels.DMX_6_DIMMER}</div>
+              </div>
+              <div className="space-y-1">
+                <div>DMX_7_MACRO: {mhFixture.dmxChannels.DMX_7_MACRO}</div>
+                <div>DMX_8_PanTiltMacroSpeed: {mhFixture.dmxChannels.DMX_8_PanTiltMacroSpeed}</div>
+                <div>DMX_9_DIMMERCURVE: {mhFixture.dmxChannels.DMX_9_DIMMERCURVE}</div>
+                <div>DMX_10_PANTILTMOVEMENTSPEED: {mhFixture.dmxChannels.DMX_10_PANTILTMOVEMENTSPEED}</div>
+                <div>DMX_11_SPECIALFUNC: {mhFixture.dmxChannels.DMX_11_SPECIALFUNC}</div>
+              </div>
+            </div>
+          </div>
+        );
+      
+      case FixtureType.SaberBeam:
+        const saFixture = fixture as SaberBeamFixture;
+        return (
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-gray-300">DMX Channels (Read-only)</h4>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div>DMX_1_RED: {saFixture.dmxChannels.DMX_1_RED}</div>
+              <div>DMX_2_GREEN: {saFixture.dmxChannels.DMX_2_GREEN}</div>
+              <div>DMX_3_BLUE: {saFixture.dmxChannels.DMX_3_BLUE}</div>
+              <div>DMX_4_WHITE: {saFixture.dmxChannels.DMX_4_WHITE}</div>
+            </div>
+          </div>
+        );
+      
+      case FixtureType.Jolt:
+        const jFixture = fixture as JoltFixture;
+        return (
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-gray-300">DMX Channels (Read-only)</h4>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="space-y-1">
+                <div>DMX_1_RED_Z1: {jFixture.dmxChannels.DMX_1_RED_Z1}</div>
+                <div>DMX_2_GREEN_Z1: {jFixture.dmxChannels.DMX_2_GREEN_Z1}</div>
+                <div>DMX_3_BLUE_Z1: {jFixture.dmxChannels.DMX_3_BLUE_Z1}</div>
+                <div>DMX_4_WHITE_Z1: {jFixture.dmxChannels.DMX_4_WHITE_Z1}</div>
+                <div>DMX_5_RED_Z2: {jFixture.dmxChannels.DMX_5_RED_Z2}</div>
+                <div>DMX_6_GREEN_Z2: {jFixture.dmxChannels.DMX_6_GREEN_Z2}</div>
+              </div>
+              <div className="space-y-1">
+                <div>DMX_7_BLUE_Z2: {jFixture.dmxChannels.DMX_7_BLUE_Z2}</div>
+                <div>DMX_8_WHITE_Z2: {jFixture.dmxChannels.DMX_8_WHITE_Z2}</div>
+                <div>DMX_9_RED_Z3: {jFixture.dmxChannels.DMX_9_RED_Z3}</div>
+                <div>DMX_10_GREEN_Z3: {jFixture.dmxChannels.DMX_10_GREEN_Z3}</div>
+                <div>DMX_11_BLUE_Z3: {jFixture.dmxChannels.DMX_11_BLUE_Z3}</div>
+                <div>DMX_12_WHITE_Z3: {jFixture.dmxChannels.DMX_12_WHITE_Z3}</div>
+              </div>
+            </div>
+          </div>
+        );
+      
+      case FixtureType.Shocker:
+        const shFixture = fixture as ShockerFixture;
+        return (
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium text-gray-300">DMX Channels (Read-only)</h4>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="space-y-1">
+                <div>DMX_1_Z1: {shFixture.dmxChannels.DMX_1_Z1}</div>
+                <div>DMX_2_Z2: {shFixture.dmxChannels.DMX_2_Z2}</div>
+                <div>DMX_3_Z3: {shFixture.dmxChannels.DMX_3_Z3}</div>
+                <div>DMX_4_Z4: {shFixture.dmxChannels.DMX_4_Z4}</div>
+              </div>
+              <div className="space-y-1">
+                <div>DMX_5_PROGRAM: {shFixture.dmxChannels.DMX_5_PROGRAM}</div>
+                <div>DMX_6_AUTOSPEED: {shFixture.dmxChannels.DMX_6_AUTOSPEED}</div>
+                <div>DMX_7_DIMMER: {shFixture.dmxChannels.DMX_7_DIMMER}</div>
+                <div>DMX_8_STROBEALL: {shFixture.dmxChannels.DMX_8_STROBEALL}</div>
+              </div>
+            </div>
+          </div>
+        );
+      
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm text-gray-300 mb-1">Position X (0-13)</label>
+          <input
+            type="number"
+            min={0}
+            max={13}
+            value={fixture.position.x}
+            onChange={(e) => handlePositionChange('x', parseInt(e.target.value) || 0)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+          />
+        </div>
+        <div>
+          <label className="block text-sm text-gray-300 mb-1">Position Y (0-13)</label>
+          <input
+            type="number"
+            min={0}
+            max={13}
+            value={fixture.position.y}
+            onChange={(e) => handlePositionChange('y', parseInt(e.target.value) || 0)}
+            className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+          />
+        </div>
+      </div>
+      
+      <div>
+        <label className="block text-sm text-gray-300 mb-1">Start DMX Address</label>
+        <input
+          type="number"
+          min={1}
+          max={512}
+          value={fixture.startDmxAddress}
+          onChange={(e) => handleStartDmxChange(parseInt(e.target.value) || 1)}
+          className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-md text-white"
+        />
+      </div>
+      
+      {renderFixtureSpecificConfig()}
+    </div>
+  );
+};
+
+const FixtureConfiguration: React.FC<{
+  fixtures: ControlsState['fixtures'];
+  onFixtureUpdate: (fixtureId: keyof ControlsState['fixtures'], fixture: Fixture) => void;
+}> = ({ fixtures, onFixtureUpdate }) => {
+  const [activeTab, setActiveTab] = useState<keyof ControlsState['fixtures']>('MH1');
+  
+  const fixtureIds = Object.keys(fixtures) as (keyof ControlsState['fixtures'])[];
+  
+  return (
+    <div className="space-y-4">
+      <h3 className="text-lg font-semibold text-white">Fixture Configuration</h3>
+      
+      {/* Tabs */}
+      <div className="flex flex-wrap gap-2">
+        {fixtureIds.map((fixtureId) => (
+          <button
+            key={fixtureId}
+            onClick={() => setActiveTab(fixtureId)}
+            className={`px-4 py-2 text-sm rounded-md transition-colors ${
+              activeTab === fixtureId
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            {fixtureId}
+          </button>
+        ))}
+      </div>
+      
+      {/* Active Tab Content */}
+      <div className="bg-gray-800 border border-gray-700 rounded-lg p-6">
+        <h4 className="text-md font-medium text-white mb-4">{activeTab} Configuration</h4>
+        <FixtureConfigTab
+          fixture={fixtures[activeTab]}
+          onUpdate={(fixture) => onFixtureUpdate(activeTab, fixture)}
+        />
+      </div>
+    </div>
+  );
+};
+
 
 const Controls: React.FC<ControlsProps> = ({ controls, setControls, section, verticalSliders = false }) => {
   const handleVisualSelect = (preset: VisualPreset) => {
@@ -579,6 +780,16 @@ const Controls: React.FC<ControlsProps> = ({ controls, setControls, section, ver
     setControls(prev => ({
       ...prev,
       effectApplication: prev.effectApplication === EffectApplication.All ? EffectApplication.Alternate : EffectApplication.All
+    }));
+  };
+
+  const handleFixtureUpdate = (fixtureId: keyof ControlsState['fixtures'], fixture: Fixture) => {
+    setControls(prev => ({
+      ...prev,
+      fixtures: {
+        ...prev.fixtures,
+        [fixtureId]: fixture
+      }
     }));
   };
 
@@ -743,14 +954,33 @@ const Controls: React.FC<ControlsProps> = ({ controls, setControls, section, ver
   );
 
   const renderConfigControls = () => (
-    <div className="space-y-4">
-      <ControlSlider label="Haze Density" value={controls.hazeDensity} onChange={handleSliderChange('hazeDensity')} />
-      <ControlSlider label="Linear Gradient" value={controls.linearGradient} onChange={handleSliderChange('linearGradient')} />
-      <ToggleButton 
-        label="Show Laser Origins" 
-        enabled={controls.showLaserOrigins} 
-        onToggle={handleToggle('showLaserOrigins')} 
-      />
+    <div className="space-y-6">
+      <div className="space-y-4">
+        <ControlSlider label="Haze Density" value={controls.hazeDensity} onChange={handleSliderChange('hazeDensity')} />
+        <ControlSlider label="Linear Gradient" value={controls.linearGradient} onChange={handleSliderChange('linearGradient')} />
+        <div className="flex items-center justify-between">
+          <label className="text-sm text-gray-300">Show Laser Origins</label>
+          <button
+            onClick={handleToggle('showLaserOrigins')}
+            className={`relative inline-flex items-center h-6 rounded-full w-11 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-gray-800 ${
+              controls.showLaserOrigins ? 'bg-red-600' : 'bg-gray-600'
+            }`}
+          >
+            <span
+              className={`inline-block w-4 h-4 transform bg-white rounded-full transition-transform duration-200 ${
+                controls.showLaserOrigins ? 'translate-x-6' : 'translate-x-1'
+              }`}
+            />
+          </button>
+        </div>
+      </div>
+      
+      <div className="border-t border-gray-700 pt-6">
+        <FixtureConfiguration
+          fixtures={controls.fixtures}
+          onFixtureUpdate={handleFixtureUpdate}
+        />
+      </div>
     </div>
   );
 
