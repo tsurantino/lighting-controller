@@ -3,7 +3,7 @@ import io from 'socket.io-client';
 import LaserSimulator from './components/LaserSimulator';
 import Controls from './components/Controls';
 import { Laser, ControlsState, ViewMode } from './types';
-import { INITIAL_CONTROLS_STATE } from './constants';
+import { INITIAL_CONTROLS_STATE, updateFixtureDmxValues } from './constants';
 
 const socket = io('http://localhost:5000');
 
@@ -43,6 +43,34 @@ function App() {
       socket.emit('control_change', { control: 'pulse', value: controls.strobePulseRate });
     }
   }, [controls.strobeOrPulse, controls.strobePulseRate]);
+
+  useEffect(() => {
+    // Update all fixture DMX values when dimmer or mhSpeed changes
+    setControls(prev => {
+      const updatedFixtures = { ...prev.fixtures };
+      
+      // Update each fixture with recalculated DMX values
+      Object.keys(updatedFixtures).forEach(fixtureId => {
+        const fixture = updatedFixtures[fixtureId as keyof typeof updatedFixtures];
+        
+        // For MovingHead fixtures, also update the speed property from mhSpeed
+        if (fixture.type === 'MovingHead') {
+          const updatedFixture = {
+            ...fixture,
+            speed: prev.mhSpeed, // Update speed property from mhSpeed slider
+          };
+          updatedFixtures[fixtureId as keyof typeof updatedFixtures] = updateFixtureDmxValues(updatedFixture, prev.dimmer);
+        } else {
+          updatedFixtures[fixtureId as keyof typeof updatedFixtures] = updateFixtureDmxValues(fixture, prev.dimmer);
+        }
+      });
+      
+      return {
+        ...prev,
+        fixtures: updatedFixtures
+      };
+    });
+  }, [controls.dimmer, controls.mhSpeed]); // Watch for changes to dimmer and mhSpeed
 
   const handleSetControls = (newControls: React.SetStateAction<ControlsState>) => {
     const updatedControls = typeof newControls === 'function' ? newControls(controls) : newControls;

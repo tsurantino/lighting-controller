@@ -794,10 +794,11 @@ const Controls: React.FC<ControlsProps> = ({ controls, setControls, section, ver
   };
 
   const handleBeatModifierChange = (
-    modifier: 'beatStrobeRate' | 'beatPulseRate' | 'beatLaserMoveSpeedRate' | 'beatShockerSpeedRate' | 'beatSaberSpeedRate'
+    modifier: 'beatStrobeRate' | 'beatPulseRate' | 'beatLaserMoveSpeedRate' | 'beatShockerSpeedRate' | 'beatSaberSpeedRate' | 'beatMhSpeedRate'  // Add beatMhSpeedRate
   ) => (rate: BeatRate) => {
     setControls(prev => ({ ...prev, [modifier]: rate }));
   };
+
 
   const handleBpmChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value, 10);
@@ -814,14 +815,15 @@ const Controls: React.FC<ControlsProps> = ({ controls, setControls, section, ver
   const isBeatLaserMoveSpeedActive = controls.beatSyncEnabled && controls.beatLaserMoveSpeedRate !== 'Off';
   const isBeatShockerSpeedActive = controls.beatSyncEnabled && controls.beatShockerSpeedRate !== 'Off';
   const isBeatSaberSpeedActive = controls.beatSyncEnabled && controls.beatSaberSpeedRate !== 'Off';
-  
+  const isBeatMhSpeedActive = controls.beatSyncEnabled && controls.beatMhSpeedRate !== 'Off';
+
   const beatRateOptions: BeatRate[] = ['Off', '1/3', '1/2', '1', '3', '4'];
 
   const renderGlobalControls = () => {
     if (verticalSliders) {
       return (
         <div className="space-y-4">
-          <div className="grid grid-cols-5 gap-x-4">
+          <div className="grid grid-cols-6 gap-x-4">
             <ControlSlider 
               label="Dimmer" 
               value={controls.dimmer} 
@@ -868,6 +870,17 @@ const Controls: React.FC<ControlsProps> = ({ controls, setControls, section, ver
               sliderDisabled={isBeatSaberSpeedActive}
               beatRate={controls.beatSaberSpeedRate}
               onBeatRateChange={handleBeatModifierChange('beatSaberSpeedRate')}
+              beatDisabled={!controls.beatSyncEnabled}
+              beatRateOptions={beatRateOptions}
+            />
+            <VerticalSliderWithBeat
+              label="MH Move Speed"
+              value={controls.mhSpeed}
+              min={1}
+              onChange={handleSliderChange('mhSpeed')}
+              sliderDisabled={isBeatMhSpeedActive}
+              beatRate={controls.beatMhSpeedRate}
+              onBeatRateChange={handleBeatModifierChange('beatMhSpeedRate')}
               beatDisabled={!controls.beatSyncEnabled}
               beatRateOptions={beatRateOptions}
             />

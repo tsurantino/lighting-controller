@@ -91,8 +91,9 @@ def handle_control_change(data):
         "effectApplication": "effect_application", 
         "scrollDirection": "scroll_direction", 
         "laserMoveSpeed": "laser_move_speed",
-        "shockerSpeed": "shocker_speed",   # NEW
-        "saberSpeed": "saber_speed",       # NEW
+        "shockerSpeed": "shocker_speed",
+        "saberSpeed": "saber_speed",
+        "mhSpeed": "mh_speed",  # ADD THIS LINE
         "scrollLaserCount": "scroll_laser_count", 
         "scrollFade": "scroll_fade", 
         "scrollBuildEffect": "scroll_build_effect", 
@@ -102,15 +103,16 @@ def handle_control_change(data):
         "bpm": "bpm", 
         "beatStrobeRate": "beat_strobe_rate", 
         "beatPulseRate": "beat_pulse_rate", 
-        "beatLaserMoveSpeedRate": "beat_laser_move_speed_rate",  # UPDATED
-        "beatShockerSpeedRate": "beat_shocker_speed_rate",      # NEW
-        "beatSaberSpeedRate": "beat_saber_speed_rate",          # NEW
+        "beatLaserMoveSpeedRate": "beat_laser_move_speed_rate",
+        "beatShockerSpeedRate": "beat_shocker_speed_rate",
+        "beatSaberSpeedRate": "beat_saber_speed_rate",
+        "beatMhSpeedRate": "beat_mh_speed_rate",  # ADD THIS LINE
         "dimmer": "dimmer", 
         "pulse": "pulse", 
         "strobe": "strobe",
-        "hazeDensity": "haze_density",     # NEW  
-        "linearGradient": "linear_gradient", # NEW
-        "showLaserOrigins": "show_laser_origins" # NEW
+        "hazeDensity": "haze_density",
+        "linearGradient": "linear_gradient",
+        "showLaserOrigins": "show_laser_origins"
     }
     js_name = data.get('control')
     value = data.get('value')
