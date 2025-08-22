@@ -13,6 +13,7 @@ function App() {
   const [isConnected, setIsConnected] = useState(socket.connected);
   const [viewMode, setViewMode] = useState<ViewMode>('landscape'); // Default to landscape
   const [showConfig, setShowConfig] = useState(false);
+  const [showSimulator, setShowSimulator] = useState(true);
 
   const controlsRef = useRef(controls);
 
@@ -72,6 +73,17 @@ function App() {
           </button>
           
           <button
+            onClick={() => setShowSimulator(!showSimulator)}
+            className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 ${
+              showSimulator 
+                ? 'bg-red-600 text-white' 
+                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+            }`}
+          >
+            Simulator
+          </button>
+          
+          <button
             onClick={() => setShowConfig(!showConfig)}
             className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 ${
               showConfig 
@@ -89,15 +101,17 @@ function App() {
         {viewMode === 'pane' ? (
           /* PANE LAYOUT - Simple side-by-side */
           <div className="flex gap-6 h-full">
-             <div className="w-1/3 flex-shrink-0">
-                 <LaserSimulator 
-                    lasers={lasers} 
-                    showLaserOrigins={controls.showLaserOrigins} 
-                    hazeDensity={controls.hazeDensity} 
-                    linearGradient={controls.linearGradient} 
-                 />
-             </div>
-             <div className="flex-grow">
+             {showSimulator && (
+               <div className="w-1/3 flex-shrink-0">
+                   <LaserSimulator 
+                      lasers={lasers} 
+                      showLaserOrigins={controls.showLaserOrigins} 
+                      hazeDensity={controls.hazeDensity} 
+                      linearGradient={controls.linearGradient} 
+                   />
+               </div>
+             )}
+             <div className={showSimulator ? "flex-grow" : "w-full"}>
                  <Controls controls={controls} setControls={handleSetControls} />
              </div>
           </div>
@@ -105,14 +119,16 @@ function App() {
           /* LANDSCAPE LAYOUT - Row-based layout */
           <div className="flex flex-col gap-6 h-full">
             {/* Row 1: Simulator - Full Width */}
-            <div className="w-full">
-              <LaserSimulator
-                lasers={lasers}
-                showLaserOrigins={controls.showLaserOrigins}
-                hazeDensity={controls.hazeDensity}
-                linearGradient={controls.linearGradient}
-              />
-            </div>
+            {showSimulator && (
+              <div className="w-full">
+                <LaserSimulator
+                  lasers={lasers}
+                  showLaserOrigins={controls.showLaserOrigins}
+                  hazeDensity={controls.hazeDensity}
+                  linearGradient={controls.linearGradient}
+                />
+              </div>
+            )}
             
             {/* Row 2: Sliders/Beat Modifiers - Full Width */}
             <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
