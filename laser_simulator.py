@@ -568,8 +568,14 @@ class LaserSimulator:
             cycle_count = math.floor(current_time / strobe_duration)
 
         elif self.controls.strobe > 0:
-            strobe_frequency = (self.controls.strobe / 100) * 30
-            strobe_is_on = math.sin(current_time * math.pi * 2 * strobe_frequency) > 0
+            # FIXED: Use square wave instead of sine wave for more reliable strobing
+            strobe_frequency = (self.controls.strobe / 100) * 20  # Reduced max to 20 Hz for stability
+            period = 1.0 / strobe_frequency if strobe_frequency > 0 else 1.0
+            
+            # Create a square wave with 50% duty cycle
+            phase = (current_time % period) / period  # 0 to 1
+            strobe_is_on = phase < 0.5  # On for first half of cycle
+            
             cycle_count = math.floor(current_time * strobe_frequency)
         
         else: # No strobe is active
@@ -586,38 +592,38 @@ class LaserSimulator:
                 (not is_top_active and laser.orientation == LaserOrientation.TOP):
                     laser.brightness = 0
 
-    def _calculate_progress(self, period: float, current_time: float) -> float:
-        """Calculate progress with loop and beat sync support."""
-        use_beat_speed = (self.controls.beat_sync_enabled and self.controls.bpm > 0 and
-                        self.controls.scroll_direction not in [ScrollDirection.NONE, ScrollDirection.SPOT] and
-                        self.controls.beat_laser_move_speed_rate != BeatRate.OFF)
+        def _calculate_progress(self, period: float, current_time: float) -> float:
+            """Calculate progress with loop and beat sync support."""
+            use_beat_speed = (self.controls.beat_sync_enabled and self.controls.bpm > 0 and
+                            self.controls.scroll_direction not in [ScrollDirection.NONE, ScrollDirection.SPOT] and
+                            self.controls.beat_laser_move_speed_rate != BeatRate.OFF)
 
-        if use_beat_speed:
-            beat_interval = 60.0 / self.controls.bpm
-            rate_multiplier = self._get_beat_rate_multiplier(self.controls.beat_laser_move_speed_rate)
-            if rate_multiplier == 0:
-                return 0
+            if use_beat_speed:
+                beat_interval = 60.0 / self.controls.bpm
+                rate_multiplier = self._get_beat_rate_multiplier(self.controls.beat_laser_move_speed_rate)
+                if rate_multiplier == 0:
+                    return 0
+                
+                beat_duration = beat_interval / rate_multiplier
+                beat_count = math.floor(current_time / beat_duration)
+                # Use quantized_time for stepped movement, which is the start of the current beat
+                quantized_time = beat_count * beat_duration
+                time_for_calc = quantized_time
+            else:
+                time_for_calc = current_time
+
+            # --- Original progress calculation logic using the determined time ---
+            effective_rate = self.controls.laser_move_speed / 3
             
-            beat_duration = beat_interval / rate_multiplier
-            beat_count = math.floor(current_time / beat_duration)
-            # Use quantized_time for stepped movement, which is the start of the current beat
-            quantized_time = beat_count * beat_duration
-            time_for_calc = quantized_time
-        else:
-            time_for_calc = current_time
-
-        # --- Original progress calculation logic using the determined time ---
-        effective_rate = self.controls.laser_move_speed / 3
-        
-        if self.controls.loop_effect:
-            bounce_period = max(period - self.controls.scroll_laser_count, period * 0.5)
-            full_period = bounce_period * 2
-            phase = (time_for_calc * effective_rate) % full_period
-            if phase < bounce_period:
-                return phase  # Moving forward
-            return full_period - phase  # Moving backward
-        
-        return (time_for_calc * effective_rate) % period
+            if self.controls.loop_effect:
+                bounce_period = max(period - self.controls.scroll_laser_count, period * 0.5)
+                full_period = bounce_period * 2
+                phase = (time_for_calc * effective_rate) % full_period
+                if phase < bounce_period:
+                    return phase  # Moving forward
+                return full_period - phase  # Moving backward
+            
+            return (time_for_calc * effective_rate) % period
     
     def _calculate_brightness(self, distance_from_wave_center: float, base_brightness: int) -> int:
         """Calculate brightness based on distance from wave center with fade support."""

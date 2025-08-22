@@ -20,18 +20,19 @@ interface ControlSliderProps {
 }
 
 interface EffectToggleProps {
-  label: string;
   options: [string, string];
   value: string;
   onToggle: () => void;
+  compact?: boolean;
 }
 
-const EffectToggle: React.FC<EffectToggleProps> = ({ label, options, value, onToggle }) => (
-    <div className="flex flex-col items-center space-y-2">
-        <label className="text-sm text-gray-400">{label}</label>
+const EffectToggle: React.FC<EffectToggleProps> = ({ options, value, onToggle, compact = false }) => (
+    <div className={compact ? "flex" : "flex flex-col items-center space-y-2"}>
         <button
             onClick={onToggle}
-            className="px-4 py-2 w-full rounded-md font-semibold text-white bg-gray-700 hover:bg-gray-600 transition-colors"
+            className={`px-3 py-1.5 rounded-md font-semibold text-white transition-colors ${
+              compact ? 'text-sm' : ''
+            } bg-gray-700 hover:bg-gray-600`}
         >
             {value === options[0] ? options[0] : options[1]}
         </button>
@@ -430,11 +431,11 @@ interface VerticalSliderWithBeatProps {
   onBeatRateChange: (rate: BeatRate) => void;
   beatDisabled?: boolean;
   beatRateOptions: BeatRate[];
-  isStrobePulse?: boolean; // New prop
-  strobeOrPulse?: 'strobe' | 'pulse'; // New prop
-  onStrobePulseToggle?: () => void; // New prop
-  effectApplication?: EffectApplication; // New prop
-  onEffectApplicationToggle?: () => void; // New prop
+  isStrobePulse?: boolean;
+  strobeOrPulse?: 'strobe' | 'pulse';
+  onStrobePulseToggle?: () => void;
+  effectApplication?: EffectApplication;
+  onEffectApplicationToggle?: () => void;
 }
 
 const VerticalSliderWithBeat: React.FC<VerticalSliderWithBeatProps> = ({
@@ -453,22 +454,6 @@ const VerticalSliderWithBeat: React.FC<VerticalSliderWithBeatProps> = ({
       disabled={sliderDisabled}
       vertical={true}
     />
-    {isStrobePulse && onStrobePulseToggle && onEffectApplicationToggle && (
-      <div className="w-full space-y-3 pt-2">
-        <EffectToggle
-          label="Effect"
-          options={['Strobe', 'Pulse']}
-          value={strobeOrPulse === 'strobe' ? 'Strobe' : 'Pulse'}
-          onToggle={onStrobePulseToggle}
-        />
-        <EffectToggle
-          label="Apply To"
-          options={['All', 'Alternate']}
-          value={effectApplication === EffectApplication.All ? 'All' : 'Alternate'}
-          onToggle={onEffectApplicationToggle}
-        />
-      </div>
-    )}
     <BeatButtons
       options={beatRateOptions}
       selectedValue={beatRate}
@@ -483,11 +468,15 @@ const BeatSyncControls: React.FC<{
   onToggle: () => void;
   bpm: number;
   onBpmChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-}> = ({ enabled, onToggle, bpm, onBpmChange }) => (
-  <div className="grid grid-cols-2 gap-2 pt-4">
+  effectApplication: EffectApplication;
+  onEffectApplicationToggle: () => void;
+  strobeOrPulse: 'strobe' | 'pulse';
+  onStrobePulseToggle: () => void;
+}> = ({ enabled, onToggle, bpm, onBpmChange, effectApplication, onEffectApplicationToggle, strobeOrPulse, onStrobePulseToggle }) => (
+  <div className="grid grid-cols-6 gap-2 pt-4 items-center">
     <button
       onClick={onToggle}
-      className={`w-full p-2 rounded-md font-semibold transition-colors ${
+      className={`col-span-2 p-2 rounded-md font-semibold transition-colors ${
         enabled ? 'bg-red-600 text-white' : 'bg-gray-700 hover:bg-gray-600'
       }`}
     >
@@ -501,8 +490,20 @@ const BeatSyncControls: React.FC<{
         disabled={!enabled}
         className={`w-full text-center bg-gray-700 rounded-md p-2 font-semibold transition-opacity ${!enabled ? 'opacity-50 cursor-not-allowed' : ''}`}
       />
-      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm pointer-events-none">BPM</span>
+      <span className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 text-xs pointer-events-none">BPM</span>
     </div>
+    <EffectToggle
+      options={['Strobe', 'Pulse']}
+      value={strobeOrPulse === 'strobe' ? 'Strobe' : 'Pulse'}
+      onToggle={onStrobePulseToggle}
+      compact={true}
+    />
+    <EffectToggle
+      options={['All', 'Alternate']}
+      value={effectApplication === EffectApplication.All ? 'All' : 'Alternate'}
+      onToggle={onEffectApplicationToggle}
+      compact={true}
+    />
   </div>
 );
 
@@ -567,7 +568,6 @@ const Controls: React.FC<ControlsProps> = ({ controls, setControls, section, ver
     setControls(prev => ({...prev, scrollLaserCount: value}));
   };
 
-   // --- UPDATED: Strobe/Pulse Toggle Handler ---
   const handleStrobePulseToggle = () => {
     setControls(prev => ({
       ...prev,
@@ -575,7 +575,6 @@ const Controls: React.FC<ControlsProps> = ({ controls, setControls, section, ver
     }));
   };
 
-  // --- UPDATED: Effect Application Toggle Handler ---
   const handleEffectApplicationToggle = () => {
     setControls(prev => ({
       ...prev,
@@ -583,7 +582,6 @@ const Controls: React.FC<ControlsProps> = ({ controls, setControls, section, ver
     }));
   };
 
-  // --- UPDATED: Beat Modifier Handler ---
   const handleBeatModifierChange = (
     modifier: 'beatStrobeRate' | 'beatPulseRate' | 'beatLaserMoveSpeedRate' | 'beatShockerSpeedRate' | 'beatSaberSpeedRate'
   ) => (rate: BeatRate) => {
@@ -628,11 +626,6 @@ const Controls: React.FC<ControlsProps> = ({ controls, setControls, section, ver
               onBeatRateChange={handleBeatModifierChange(controls.strobeOrPulse === 'strobe' ? 'beatStrobeRate' : 'beatPulseRate')}
               beatDisabled={!controls.beatSyncEnabled}
               beatRateOptions={beatRateOptions}
-              isStrobePulse={true}
-              strobeOrPulse={controls.strobeOrPulse}
-              onStrobePulseToggle={handleStrobePulseToggle}
-              effectApplication={controls.effectApplication}
-              onEffectApplicationToggle={handleEffectApplicationToggle}
             />
             <VerticalSliderWithBeat
               label="Laser Move Speed"
@@ -673,12 +666,15 @@ const Controls: React.FC<ControlsProps> = ({ controls, setControls, section, ver
             onToggle={handleToggle('beatSyncEnabled')}
             bpm={controls.bpm}
             onBpmChange={handleBpmChange}
+            effectApplication={controls.effectApplication}
+            onEffectApplicationToggle={handleEffectApplicationToggle}
+            strobeOrPulse={controls.strobeOrPulse}
+            onStrobePulseToggle={handleStrobePulseToggle}
           />
         </div>
       );
     }
 
-    // Fallback for non-vertical layout (can be adjusted if needed)
     return (
       <div className="space-y-4">
         <ControlSlider label="Dimmer" value={controls.dimmer} onChange={handleSliderChange('dimmer')} />
@@ -688,7 +684,6 @@ const Controls: React.FC<ControlsProps> = ({ controls, setControls, section, ver
     );
   };
   
-  // --- Other render functions are unchanged ---
   const renderVisualControls = () => (
     <div className="grid grid-cols-3 gap-2">
       <VisualButton preset={VisualPreset.Grid} selectedPreset={controls.visualPreset} onSelect={handleVisualSelect} />

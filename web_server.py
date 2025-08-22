@@ -90,9 +90,9 @@ def handle_control_change(data):
         "visualPreset": "visual_preset", 
         "effectApplication": "effect_application", 
         "scrollDirection": "scroll_direction", 
-        "laserMoveSpeed": "laser_move_speed", # Renamed from scrollRate
-        "shockerSpeed": "shocker_speed",   # New
-        "saberSpeed": "saber_speed",     # New
+        "laserMoveSpeed": "laser_move_speed",
+        "shockerSpeed": "shocker_speed",   # NEW
+        "saberSpeed": "saber_speed",       # NEW
         "scrollLaserCount": "scroll_laser_count", 
         "scrollFade": "scroll_fade", 
         "scrollBuildEffect": "scroll_build_effect", 
@@ -102,10 +102,15 @@ def handle_control_change(data):
         "bpm": "bpm", 
         "beatStrobeRate": "beat_strobe_rate", 
         "beatPulseRate": "beat_pulse_rate", 
-        "beatSpeedRate": "beat_speed_rate", 
+        "beatLaserMoveSpeedRate": "beat_laser_move_speed_rate",  # UPDATED
+        "beatShockerSpeedRate": "beat_shocker_speed_rate",      # NEW
+        "beatSaberSpeedRate": "beat_saber_speed_rate",          # NEW
         "dimmer": "dimmer", 
         "pulse": "pulse", 
-        "strobe": "strobe" 
+        "strobe": "strobe",
+        "hazeDensity": "haze_density",     # NEW  
+        "linearGradient": "linear_gradient", # NEW
+        "showLaserOrigins": "show_laser_origins" # NEW
     }
     js_name = data.get('control')
     value = data.get('value')

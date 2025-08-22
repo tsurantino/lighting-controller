@@ -31,20 +31,49 @@ function App() {
       socket.off('disconnect');
       socket.off('state_update');
     };
-  }, [controls]);
+  }, []);
+
+  // Send separate strobe/pulse values when the toggle or rate changes
+  useEffect(() => {
+    if (controls.strobeOrPulse === 'strobe') {
+      socket.emit('control_change', { control: 'strobe', value: controls.strobePulseRate });
+      socket.emit('control_change', { control: 'pulse', value: 0 });
+    } else {
+      socket.emit('control_change', { control: 'strobe', value: 0 });
+      socket.emit('control_change', { control: 'pulse', value: controls.strobePulseRate });
+    }
+  }, [controls.strobeOrPulse, controls.strobePulseRate]);
 
   const handleSetControls = (newControls: React.SetStateAction<ControlsState>) => {
     const updatedControls = typeof newControls === 'function' ? newControls(controls) : newControls;
     setControls(updatedControls);
 
+    // Convert frontend controls to backend format
+    const backendControls: any = {};
+    
     for (const key in updatedControls) {
       const typedKey = key as keyof ControlsState;
-      if (updatedControls[typedKey] !== controlsRef.current[typedKey]) {
-        socket.emit('control_change', {
-          control: typedKey,
-          value: updatedControls[typedKey],
-        });
+      const currentValue = updatedControls[typedKey];
+      const previousValue = controlsRef.current[typedKey];
+      
+      if (currentValue !== previousValue) {
+        // Handle the combined strobe/pulse control
+        if (typedKey === 'strobePulseRate' || typedKey === 'strobeOrPulse') {
+          // These are handled by the useEffect above
+          continue;
+        } else {
+          // Map other controls directly
+          backendControls[typedKey] = currentValue;
+        }
       }
+    }
+
+    // Send each changed control to the backend
+    for (const [control, value] of Object.entries(backendControls)) {
+      socket.emit('control_change', {
+        control: control,
+        value: value,
+      });
     }
   };
 
