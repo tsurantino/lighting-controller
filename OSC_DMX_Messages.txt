@@ -1,0 +1,182 @@
+OSC Control Messages for Laser Simulator
+========================================
+
+INCOMING MESSAGES (Control the simulator):
+-----------------------------------------
+
+Basic Controls:
+/laser/dimmer <float 0.0-1.0>          - Master dimmer control
+/laser/strobe <float 0.0-1.0>          - Strobe speed control (0=off, 1=max)  
+/laser/pulse <float 0.0-1.0>           - Pulse speed control (0=off, 1=max)
+/laser/speed <float 0.0-1.0>           - Movement speed control
+
+Movement Modifiers:
+/laser/fade <float 0.0-1.0>            - Fade toggle (>0.5 = on)
+/laser/loop <float 0.0-1.0>            - Loop toggle (>0.5 = on)
+/laser/phase <float 0.0-1.0>           - Phase toggle (>0.5 = on)
+/laser/build <float 0.0-1.0>           - Build toggle (>0.5 = on)
+
+Visual Presets:
+/laser/preset <string>                 - Visual preset name:
+                                         "All On", "Cross", "Small Cross", "Big Cross"
+                                         "Cube", "4 Cubes", "bracket", "l_bracket"
+                                         "s_dbl_cross", "dbl_cross", "l_dbl_cross", "9_cubes"
+
+Movement Directions:
+/laser/direction <string>              - Movement direction:
+                                         "None", "L to R", "R to L", "T to B", "B to T"
+                                         "To TL", "To TR", "To BL", "To BR"
+                                         "Out from Center", "Towards Center", "Pinwheel", "Spot"
+
+Effect Settings:
+/laser/effect_mode <string>            - "All" or "Alternate"
+/laser/laser_count <int>               - Number of lasers in movement (1, 2, 4, or 8)
+
+OUTGOING MESSAGES (Status updates):
+----------------------------------
+
+Control Status:
+/laser/status/dimmer <float>           - Current dimmer value (0.0-1.0)
+/laser/status/strobe <float>           - Current strobe value (0.0-1.0)
+/laser/status/pulse <float>            - Current pulse value (0.0-1.0)
+/laser/status/speed <float>            - Current speed value (0.0-1.0)
+/laser/status/preset <string>          - Current preset name
+/laser/status/direction <string>       - Current direction
+/laser/status/effect_mode <string>     - Current effect mode
+/laser/status/laser_count <int>        - Current laser count
+
+Modifier Status:
+/laser/status/fade <float>             - Fade enabled (1.0 = on, 0.0 = off)
+/laser/status/loop <float>             - Loop enabled (1.0 = on, 0.0 = off)
+/laser/status/phase <float>            - Phase enabled (1.0 = on, 0.0 = off)
+/laser/status/build <float>            - Build enabled (1.0 = on, 0.0 = off)
+
+DMX Data:
+/laser/dmx/universe <array of 512 ints> - Full DMX universe data (0-255 per channel)
+/laser/dmx/mapping <string>            - JSON string of laser ID to DMX address mapping
+
+DMX ADDRESS MAPPING:
+===================
+
+The simulator uses a sequential DMX address assignment:
+
+Top Lasers (Left to Right):
+- top-0:  DMX Channel 1   (Leftmost top laser)
+- top-1:  DMX Channel 2
+- top-2:  DMX Channel 3
+- ...
+- top-13: DMX Channel 14  (Rightmost top laser)
+
+Side Lasers (Top to Bottom):
+- side-0:  DMX Channel 15  (Topmost side laser)
+- side-1:  DMX Channel 16
+- side-2:  DMX Channel 17
+- ...
+- side-13: DMX Channel 28  (Bottommost side laser)
+
+Each laser uses 1 DMX channel for Red intensity (0-255).
+
+TOUCHOSC LAYOUT SUGGESTIONS:
+============================
+
+Page 1 - Main Controls:
+- Fader: Dimmer (0.0-1.0) → /laser/dimmer
+- Fader: Strobe (0.0-1.0) → /laser/strobe  
+- Fader: Pulse (0.0-1.0) → /laser/pulse
+- Fader: Speed (0.0-1.0) → /laser/speed
+
+- Toggle: Fade → /laser/fade
+- Toggle: Loop → /laser/loop
+- Toggle: Phase → /laser/phase
+- Toggle: Build → /laser/build
+
+- Multi-toggle: Effect Mode (All/Alternate) → /laser/effect_mode
+- Multi-toggle: Laser Count (1/2/4/8) → /laser/laser_count
+
+Page 2 - Visual Presets:
+- Button Grid (3x4): Visual presets → /laser/preset
+  Row 1: "All On", "bracket", "l_bracket"
+  Row 2: "Small Cross", "Cross", "Big Cross"  
+  Row 3: "s_dbl_cross", "dbl_cross", "l_dbl_cross"
+  Row 4: "Cube", "4 Cubes", "9_cubes"
+
+Page 3 - Movement:
+- Direction Pad (3x3): Movement directions → /laser/direction
+  TL    Up    TR
+  Left   X   Right  
+  BL   Down   BR
+
+- Movement Buttons: → /laser/direction
+  Out, In, Pinwheel, Spot
+
+Page 4 - XY Control (Advanced):
+- XY Pad: Real-time dimmer (X) and speed (Y)
+  X-axis (0.0-1.0) → /laser/dimmer
+  Y-axis (0.0-1.0) → /laser/speed
+
+CONNECTION SETTINGS:
+===================
+
+Default OSC Settings:
+- Simulator Listen Port: 8000
+- Simulator Send Port: 8001
+- TouchOSC Target: 127.0.0.1:8000
+- TouchOSC Receive: 127.0.0.1:8001
+
+For network control, replace 127.0.0.1 with the computer's IP address.
+
+EXAMPLE USAGE:
+=============
+
+Python OSC Client:
+```python
+from pythonosc import udp_client
+client = udp_client.SimpleUDPClient("127.0.0.1", 8000)
+
+# Set dimmer to 50%
+client.send_message("/laser/dimmer", 0.5)
+
+# Enable fade effect
+client.send_message("/laser/fade", 1.0)
+
+# Set cross pattern
+client.send_message("/laser/preset", "Cross")
+
+# Start left-to-right movement
+client.send_message("/laser/direction", "L to R")
+```
+
+Max/MSP:
+- Use [udpsend] object to send to port 8000
+- Use [udpreceive] object to listen on port 8001
+
+Pure Data:
+- Use [netsend -u] to send UDP to port 8000  
+- Use [netreceive -u] to receive UDP on port 8001
+
+TROUBLESHOOTING:
+===============
+
+OSC Not Working:
+1. Check firewall settings allow ports 8000-8001
+2. Verify IP addresses are correct for network control
+3. Ensure OSC library is installed: pip install python-osc
+4. Check simulator console for connection messages
+
+DMX Not Working:
+1. Verify correct COM port in settings
+2. Check DMX interface is connected and recognized
+3. Ensure pyserial is installed: pip install pyserial
+4. Test with DMX software to verify interface works
+
+Web Interface Not Loading:
+1. Ensure Flask server is running on port 5000
+2. Check browser console for JavaScript errors
+3. Verify WebSocket connection (status indicator)
+4. Try refreshing or hard reload (Ctrl+F5)
+
+Performance Issues:
+1. Reduce update rate in simulator loop
+2. Close other applications using network/serial ports
+3. Check CPU usage - reduce visual effects if needed
+4. Use wired network connection for better OSC timing

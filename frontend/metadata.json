@@ -1,0 +1,5 @@
+{
+  "name": "Laser Rig Simulator",
+  "description": "A web-based simulator for a laser lighting rig with top and side-mounted lasers. This provides a visual representation of DMX-controlled laser effects.",
+  "requestFramePermissions": []
+}

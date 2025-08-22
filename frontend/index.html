@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Laser Rig Simulator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+    {
+      "imports": {
+        "react/": "https://esm.sh/react@^19.1.1/",
+        "react": "https://esm.sh/react@^19.1.1",
+        "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+        "socket.io-client": "https://esm.sh/socket.io-client@^4.8.1"
+      }
+    }
+    </script>
+    <style>
+    /* Vertical Slider Styles with Fill Effect */
+    .slider-vertical-wrapper {
+      position: relative;
+      display: inline-block;
+      width: var(--slider-width, 90px);
+      height: 160px;
+    }
+
+    /* Responsive slider widths */
+    @media (max-width: 1200px) {
+      .slider-vertical-wrapper {
+        --slider-width: 80px;
+      }
+    }
+
+    @media (max-width: 1000px) {
+      .slider-vertical-wrapper {
+        --slider-width: 70px;
+      }
+    }
+
+    @media (max-width: 800px) {
+      .slider-vertical-wrapper {
+        --slider-width: 60px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .slider-vertical-wrapper {
+        --slider-width: 50px;
+      }
+    }
+
+    .slider-vertical-track {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: #4b5563;
+      border-radius: 12px;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    .slider-vertical-fill {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      background: #ef4444;
+      border-radius: 0 0 12px 12px;
+      pointer-events: none;
+      z-index: 2;
+      transition: height 0.1s ease;
+    }
+
+    .slider-vertical-fill.full {
+      border-radius: 12px; /* Full border radius when at 100% */
+    }
+
+    .slider-vertical-percentage {
+      position: absolute;
+      top: 8px;
+      left: 50%;
+      transform: translateX(-50%);
+      color: white;
+      font-size: 12px;
+      font-weight: 600;
+      pointer-events: none;
+      z-index: 3;
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    }
+
+    /* Disabled state for the wrapper */
+    .slider-vertical-wrapper[style*="not-allowed"] .slider-vertical-track {
+      background: #374151;
+    }
+
+    .slider-vertical-wrapper[style*="not-allowed"] .slider-vertical-fill {
+      background: #6b7280;
+    }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>

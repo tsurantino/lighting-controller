@@ -1,0 +1,1405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Laser Rig Simulator - DMX Control</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        :root {
+            --primary-red: #dc2626;
+            --primary-red-glow: rgba(220, 38, 38, 0.4);
+            --dark-bg: #111827;
+            --darker-bg: #0f172a;
+            --control-bg: #374151;
+            --control-hover: #4b5563;
+            --control-active: #1f2937;
+            --text-primary: #ffffff;
+            --text-secondary: #9ca3af;
+            --border-color: #374151;
+            --glow-color: rgba(220, 38, 38, 0.6);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--darker-bg);
+            color: var(--text-primary);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .app-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: var(--dark-bg);
+        }
+
+        .header {
+            text-align: center;
+            padding: 12px 0;
+            background: var(--darker-bg);
+            border-bottom: 2px solid var(--primary-red);
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            color: var(--primary-red);
+            font-weight: 700;
+            text-shadow: 0 0 20px var(--primary-red-glow);
+            letter-spacing: 2px;
+        }
+
+        .header p {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-top: 4px;
+        }
+
+        .show-simulator-btn {
+            position: absolute;
+            top: 50%;
+            left: 20px;
+            transform: translateY(-50%);
+            background: var(--primary-red);
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            box-shadow: 0 0 15px var(--primary-red-glow);
+            display: none;
+            transition: all 0.3s ease;
+        }
+
+        .show-simulator-btn:hover {
+            background: #b91c1c;
+            box-shadow: 0 0 25px var(--primary-red-glow);
+        }
+
+        .show-simulator-btn.visible {
+            display: block;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            gap: 20px;
+            min-height: 0;
+            padding: 20px;
+        }
+
+        .main-content.simulator-hidden {
+            display: block;
+            padding: 20px 40px;
+        }
+
+        .simulator-section {
+            flex: 2;
+            background: var(--darker-bg);
+            border-radius: 12px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            min-height: 0;
+            border: 1px solid var(--border-color);
+        }
+
+        .simulator-section.hidden {
+            display: none;
+        }
+
+        .simulator-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .simulator-header h3 {
+            font-size: 18px;
+            color: var(--text-primary);
+            font-weight: 600;
+        }
+
+        .toggle-simulator {
+            background: var(--control-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .toggle-simulator:hover {
+            background: var(--control-hover);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
+        }
+
+        .laser-grid {
+            flex: 1;
+            background: #000;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            min-height: 400px;
+            border: 2px solid var(--primary-red);
+            box-shadow: inset 0 0 50px rgba(220, 38, 38, 0.2);
+        }
+
+        .laser-beam {
+            position: absolute;
+            background: var(--primary-red);
+            opacity: 0;
+            transition: opacity 0.1s ease;
+            box-shadow: 0 0 10px var(--primary-red-glow);
+        }
+
+        .laser-beam.top {
+            width: 2px;
+            height: 100%;
+            transform-origin: center;
+        }
+
+        .laser-beam.side {
+            height: 2px;
+            width: 100%;
+            transform-origin: center;
+        }
+
+        .controls-section {
+            flex: 1;
+            background: var(--darker-bg);
+            border-radius: 12px;
+            padding: 20px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            max-height: calc(100vh - 140px);
+        }
+
+        /* 5-column layout when simulator hidden */
+        .controls-grid {
+            display: none;
+            grid-template-columns: 200px 1fr 1fr 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .main-content.simulator-hidden .controls-section {
+            display: none;
+        }
+
+        .main-content.simulator-hidden .controls-grid {
+            display: grid;
+        }
+
+        .control-column {
+            background: var(--darker-bg);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border-color);
+            height: fit-content;
+        }
+
+        .control-group {
+            margin-bottom: 24px;
+        }
+
+        .control-separator {
+            border: none;
+            border-top: 1px solid var(--border-color);
+            margin: 16px 0;
+        }
+
+        .control-group h3 {
+            font-size: 14px;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        /* Vertical Sliders */
+        .vertical-slider-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .vertical-slider-label {
+            font-size: 12px;
+            margin-bottom: 8px;
+            color: var(--text-secondary);
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .vertical-slider-value {
+            font-size: 14px;
+            color: var(--primary-red);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .vertical-slider {
+            writing-mode: bt-lr; /* IE */
+            -webkit-appearance: slider-vertical; /* WebKit */
+            width: 8px;
+            height: 150px;
+            background: var(--control-bg);
+            outline: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .vertical-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-red);
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px var(--primary-red-glow);
+        }
+
+        .vertical-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-red);
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px var(--primary-red-glow);
+        }
+
+        .slider-container {
+            margin-bottom: 12px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-bottom: 4px;
+            color: var(--text-secondary);
+        }
+
+        .slider {
+            width: 100%;
+            height: 8px;
+            border-radius: 4px;
+            background: var(--control-bg);
+            appearance: none;
+            cursor: pointer;
+        }
+
+        .slider::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: var(--primary-red);
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 0 10px var(--primary-red-glow);
+        }
+
+        .button-grid {
+            display: grid;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .button-grid.presets {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .button-grid.direction-pad {
+            grid-template-columns: repeat(3, 1fr);
+            max-width: none;
+        }
+
+        .button-grid.movement {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .button-grid.modifiers {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .button-grid.laser-count {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .button-grid.beat-rates {
+            grid-template-columns: repeat(5, 1fr);
+        }
+
+        .beat-sync-controls .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .beat-sync-controls .toggle-container .text-input {
+            margin-left: auto;
+            width: 60px;
+        }
+
+        .control-button {
+            background: var(--control-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 12px 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 11px;
+            text-align: center;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .control-button:hover {
+            background: var(--control-hover);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-button.active {
+            background: var(--primary-red);
+            border-color: var(--primary-red);
+            color: white;
+            box-shadow: 0 0 20px var(--primary-red-glow);
+            transform: translateY(-1px);
+        }
+
+        .effect-mode {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .effect-mode .control-button {
+            flex: 1;
+        }
+
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .toggle {
+            width: 50px;
+            height: 24px;
+            background: var(--control-bg);
+            border-radius: 12px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+        }
+
+        .toggle.active {
+            background: var(--primary-red);
+            box-shadow: 0 0 15px var(--primary-red-glow);
+        }
+
+        .toggle::after {
+            content: '';
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle.active::after {
+            transform: translateX(26px);
+        }
+
+        .input-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .text-input {
+            background: var(--control-bg);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            width: 80px;
+            text-align: center;
+            font-weight: 600;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: var(--primary-red);
+            box-shadow: 0 0 10px var(--primary-red-glow);
+        }
+
+        .status-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+        }
+
+        .status-indicator.disconnected {
+            background: #ef4444;
+            box-shadow: 0 0 10px rgba(239, 68, 68, 0.6);
+        }
+
+        /* Beat sync section */
+        .beat-sync-section {
+            border-top: 1px solid var(--border-color);
+            padding-top: 16px;
+            margin-top: 16px;
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 1400px) {
+            .controls-grid {
+                grid-template-columns: 180px 1fr 1fr 1fr 1fr;
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .controls-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+                grid-template-rows: auto auto;
+            }
+        }
+
+        /* Direction pad styling */
+        .direction-button {
+            min-height: 40px;
+            font-size: 10px;
+            font-weight: 700;
+        }
+
+        .direction-icon {
+            width: 20px;
+            height: 20px;
+            margin: 0 auto;
+        }
+
+        /* Movement buttons with icons */
+        .button-grid.presets .control-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+            padding: 8px 4px;
+        }
+
+        .preset-icon {
+            font-size: 16px;
+            line-height: 1;
+        }
+
+        .visual-icon {
+            width: 20px;
+            height: 20px;
+        }
+
+        .button-grid.movement .control-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+        }
+
+        .button-grid.movement .direction-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .modifiers-and-count {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .button-grid.modifiers .control-button {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            font-size: 10px;
+        }
+
+        .modifier-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .beat-rates-section {
+            margin-top: 12px;
+        }
+
+        .rate-group {
+            margin-bottom: 12px;
+        }
+
+        .rate-group h4 {
+            font-size: 11px;
+            color: var(--text-secondary);
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        /* Icons using Unicode symbols */
+        .icon-grid::before { content: "⊞"; }
+        .icon-bracket::before { content: "⊏⊐"; }
+        .icon-l-bracket::before { content: "⌊⌈"; }
+        .icon-cross::before { content: "+"; }
+        .icon-s-cross::before { content: "✚"; }
+        .icon-l-cross::before { content: "✛"; }
+        .icon-dbl-cross::before { content: "‡"; }
+        .icon-cube::before { content: "⬜"; }
+        .icon-4-cubes::before { content: "⬛"; }
+        .icon-9-cubes::before { content: "⬛⬛⬛"; }
+
+        /* Responsive adjustments */
+        @media (max-width: 1400px) {
+            .controls-grid {
+                grid-template-columns: 180px 1fr 1fr 1fr 1fr;
+                gap: 20px;
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .controls-grid {
+                grid-template-columns: 1fr 1fr 1fr;
+                grid-template-rows: auto auto;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <button class="show-simulator-btn" id="showSimulatorBtn" onclick="toggleSimulator()">Show Simulator</button>
+        
+        <div class="header">
+            <h1>Laser Rig Simulator</h1>
+            <p>DMX Control Emulator</p>
+            <div class="status-indicator" id="status"></div>
+        </div>
+
+        <div class="main-content" id="mainContent">
+            <div class="simulator-section" id="simulatorSection">
+                <div class="simulator-header">
+                    <h3>Laser Grid</h3>
+                    <button class="toggle-simulator" onclick="toggleSimulator()">Hide Simulator</button>
+                </div>
+                <div class="laser-grid" id="laserGrid">
+                    <!-- Laser beams will be generated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="controls-section">
+                <!-- Master Controls -->
+                <div class="control-group">
+                    <h3>Master Controls</h3>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Dimmer</span>
+                            <span id="dimmerValue">100</span>
+                        </div>
+                        <input type="range" class="slider" id="dimmer" min="0" max="100" value="100">
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Strobe</span>
+                            <span id="strobeValue">0</span>
+                        </div>
+                        <input type="range" class="slider" id="strobe" min="0" max="100" value="0">
+                    </div>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Pulse</span>
+                            <span id="pulseValue">0</span>
+                        </div>
+                        <input type="range" class="slider" id="pulse" min="0" max="100" value="0">
+                    </div>
+                </div>
+
+                <!-- Effect Mode -->
+                <div class="control-group">
+                    <h3>Effect Mode</h3>
+                    <div class="effect-mode">
+                        <button class="control-button active" data-effect="All">All</button>
+                        <button class="control-button" data-effect="Alternate">Alternate</button>
+                    </div>
+                </div>
+
+                <!-- Visual Presets -->
+                <div class="control-group">
+                    <h3>Visual Presets</h3>
+                    <div class="button-grid presets" id="presetGrid">
+                        <button class="control-button active icon-grid" data-preset="Grid">Grid</button>
+                        <button class="control-button icon-bracket" data-preset="Bracket">Bracket</button>
+                        <button class="control-button icon-l-bracket" data-preset="L Bracket">L Bracket</button>
+                        <button class="control-button icon-s-cross" data-preset="S Cross">S Cross</button>
+                        <button class="control-button icon-cross" data-preset="Cross">Cross</button>
+                        <button class="control-button icon-l-cross" data-preset="L Cross">L Cross</button>
+                        <button class="control-button icon-dbl-cross" data-preset="S Dbl Cross">S Dbl Cross</button>
+                        <button class="control-button icon-dbl-cross" data-preset="Dbl Cross">Dbl Cross</button>
+                        <button class="control-button icon-dbl-cross" data-preset="L Dbl Cross">L Dbl Cross</button>
+                        <button class="control-button icon-cube" data-preset="Cube">Cube</button>
+                        <button class="control-button icon-4-cubes" data-preset="4 Cubes">4 Cubes</button>
+                        <button class="control-button icon-9-cubes" data-preset="9 Cubes">9 Cubes</button>
+                    </div>
+                </div>
+
+                <!-- Direction Control -->
+                <div class="control-group">
+                    <h3>Direction</h3>
+                    <div class="button-grid direction-pad">
+                        <button class="control-button direction-button" data-direction="To TL">↖</button>
+                        <button class="control-button direction-button" data-direction="B to T">↑</button>
+                        <button class="control-button direction-button" data-direction="To TR">↗</button>
+                        <button class="control-button direction-button" data-direction="R to L">←</button>
+                        <button class="control-button direction-button active" data-direction="None">✕</button>
+                        <button class="control-button direction-button" data-direction="L to R">→</button>
+                        <button class="control-button direction-button" data-direction="To BL">↙</button>
+                        <button class="control-button direction-button" data-direction="T to B">↓</button>
+                        <button class="control-button direction-button" data-direction="To BR">↘</button>
+                    </div>
+                </div>
+
+                <!-- Movement Presets -->
+                <div class="control-group">
+                    <h3>Movement</h3>
+                    <div class="button-grid movement">
+                        <button class="control-button" data-movement="Out from Center">⧨ Out</button>
+                        <button class="control-button" data-movement="Towards Center">⧩ In</button>
+                        <button class="control-button" data-movement="Pinwheel">⟲ Pinwheel</button>
+                        <button class="control-button" data-movement="Spot">⚬ Spot</button>
+                    </div>
+                </div>
+
+                <!-- Movement Modifiers -->
+                <div class="control-group">
+                    <h3>Modifiers</h3>
+                    <div class="button-grid modifiers">
+                        <button class="control-button" data-modifier="loop">⟲ Loop</button>
+                        <button class="control-button" data-modifier="fade">◐ Fade</button>
+                        <button class="control-button" data-modifier="phase">⚌ Phase</button>
+                        <button class="control-button" data-modifier="build">⚡ Build</button>
+                    </div>
+                </div>
+
+                <!-- Laser Count -->
+                <div class="control-group">
+                    <h3>Laser Count</h3>
+                    <div class="button-grid laser-count">
+                        <button class="control-button" data-count="1">1</button>
+                        <button class="control-button" data-count="2">2</button>
+                        <button class="control-button" data-count="4">4</button>
+                        <button class="control-button active" data-count="8">8</button>
+                    </div>
+                </div>
+
+                <!-- Speed Control -->
+                <div class="control-group">
+                    <h3>Speed</h3>
+                    <div class="slider-container">
+                        <div class="slider-label">
+                            <span>Movement Speed</span>
+                            <span id="speedValue">60</span>
+                        </div>
+                        <input type="range" class="slider" id="speed" min="1" max="100" value="60">
+                    </div>
+                </div>
+
+                <!-- Beat Sync Controls -->
+                <div class="control-group beat-sync-section">
+                    <h3>Beat Sync</h3>
+                    <div class="toggle-container">
+                        <div class="toggle" id="beatSyncToggle"></div>
+                        <span>Beat Sync</span>
+                    </div>
+                    <div class="input-group">
+                        <label>BPM:</label>
+                        <input type="number" class="text-input" id="bpmInput" value="140" min="60" max="200">
+                    </div>
+                    <div class="control-group">
+                        <h4 style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Strobe Rate</h4>
+                        <div class="button-grid beat-rates">
+                            <button class="control-button active" data-beat-strobe="Off">Off</button>
+                            <button class="control-button" data-beat-strobe="1/3">1/3</button>
+                            <button class="control-button" data-beat-strobe="1/2">1/2</button>
+                            <button class="control-button" data-beat-strobe="1">1</button>
+                            <button class="control-button" data-beat-strobe="4">4</button>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <h4 style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Pulse Rate</h4>
+                        <div class="button-grid beat-rates">
+                            <button class="control-button active" data-beat-pulse="Off">Off</button>
+                            <button class="control-button" data-beat-pulse="1/3">1/3</button>
+                            <button class="control-button" data-beat-pulse="1/2">1/2</button>
+                            <button class="control-button" data-beat-pulse="1">1</button>
+                            <button class="control-button" data-beat-pulse="4">4</button>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <h4 style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Speed Rate</h4>
+                        <div class="button-grid beat-rates">
+                            <button class="control-button active" data-beat-speed="Off">Off</button>
+                            <button class="control-button" data-beat-speed="1/3">1/3</button>
+                            <button class="control-button" data-beat-speed="1/2">1/2</button>
+                            <button class="control-button" data-beat-speed="1">1</button>
+                            <button class="control-button" data-beat-speed="4">4</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OSC/DMX Settings -->
+                <div class="control-group">
+                    <h3>OSC/DMX</h3>
+                    <div class="toggle-container">
+                        <div class="toggle" id="oscToggle"></div>
+                        <span>OSC Control</span>
+                    </div>
+                    <div class="toggle-container">
+                        <div class="toggle" id="dmxToggle"></div>
+                        <span>DMX Output</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5-Column Grid Layout (shown when simulator hidden) -->
+            <div class="controls-grid">
+                <!-- Column 1: Vertical Sliders -->
+                <div class="control-column">
+                    <div class="control-group">
+                        <h3>Master Controls</h3>
+                        <div class="vertical-slider-container">
+                            <div class="vertical-slider-label">Dimmer</div>
+                            <div class="vertical-slider-value" id="vDimmerValue">100</div>
+                            <input type="range" class="vertical-slider" id="vDimmer" min="0" max="100" value="100" orient="vertical">
+                        </div>
+                        <div class="vertical-slider-container">
+                            <div class="vertical-slider-label">Strobe</div>
+                            <div class="vertical-slider-value" id="vStrobeValue">0</div>
+                            <input type="range" class="vertical-slider" id="vStrobe" min="0" max="100" value="0" orient="vertical">
+                        </div>
+                        <div class="vertical-slider-container">
+                            <div class="vertical-slider-label">Pulse</div>
+                            <div class="vertical-slider-value" id="vPulseValue">0</div>
+                            <input type="range" class="vertical-slider" id="vPulse" min="0" max="100" value="0" orient="vertical">
+                        </div>
+                        <div class="vertical-slider-container">
+                            <div class="vertical-slider-label">Speed</div>
+                            <div class="vertical-slider-value" id="vSpeedValue">60</div>
+                            <input type="range" class="vertical-slider" id="vSpeed" min="1" max="100" value="60" orient="vertical">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column 2: Visual Presets -->
+                <div class="control-column">
+                    <div class="button-grid presets">
+                        <button class="control-button active" data-preset="Grid">⊞ Grid</button>
+                        <button class="control-button" data-preset="Bracket">⊏⊐ Bracket</button>
+                        <button class="control-button" data-preset="L Bracket">⌊⌈ L Bracket</button>
+                        <button class="control-button" data-preset="S Cross">+ S Cross</button>
+                        <button class="control-button" data-preset="Cross">+ Cross</button>
+                        <button class="control-button" data-preset="L Cross">+ L Cross</button>
+                        <button class="control-button" data-preset="S Dbl Cross">‡ S Dbl Cross</button>
+                        <button class="control-button" data-preset="Dbl Cross">‡ Dbl Cross</button>
+                        <button class="control-button" data-preset="L Dbl Cross">‡ L Dbl Cross</button>
+                        <button class="control-button" data-preset="Cube">⬜ Cube</button>
+                        <button class="control-button" data-preset="4 Cubes">⬛ 4 Cubes</button>
+                        <button class="control-button" data-preset="9 Cubes">⬛ 9 Cubes</button>
+                    </div>
+                    <hr class="control-separator">
+                    <div class="effect-mode">
+                        <button class="control-button active" data-effect="All">All</button>
+                        <button class="control-button" data-effect="Alternate">Alternate</button>
+                    </div>
+                </div>
+
+                <!-- Column 3: Movement Controls -->
+                <div class="control-column">
+                    <div class="button-grid direction-pad">
+                        <button class="control-button direction-button" data-direction="To TL">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path transform="rotate(-45 12 12)" d="M12 6L7 11h4v7h2v-7h4z" />
+                            </svg>
+                        </button>
+                        <button class="control-button direction-button" data-direction="B to T">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path d="M12 6L7 11h4v7h2v-7h4z" />
+                            </svg>
+                        </button>
+                        <button class="control-button direction-button" data-direction="To TR">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path transform="rotate(45 12 12)" d="M12 6L7 11h4v7h2v-7h4z" />
+                            </svg>
+                        </button>
+                        <button class="control-button direction-button" data-direction="R to L">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path d="M6 12l5-5v4h8v2h-8v5z" />
+                            </svg>
+                        </button>
+                        <button class="control-button direction-button active" data-direction="None">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/>
+                            </svg>
+                        </button>
+                        <button class="control-button direction-button" data-direction="L to R">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path d="M18 12l-5 5v-4H5v-2h8V7z" />
+                            </svg>
+                        </button>
+                        <button class="control-button direction-button" data-direction="To BL">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path transform="rotate(-135 12 12)" d="M12 6L7 11h4v7h2v-7h4z" />
+                            </svg>
+                        </button>
+                        <button class="control-button direction-button" data-direction="T to B">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path d="M12 18l5-5h-4V6h-2v7H7z" />
+                            </svg>
+                        </button>
+                        <button class="control-button direction-button" data-direction="To BR">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path transform="rotate(135 12 12)" d="M12 6L7 11h4v7h2v-7h4z" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="button-grid movement">
+                        <button class="control-button" data-movement="Out from Center">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path d="M7 14H5v5h5v-2H7v-3zm-2-4h2V7h3V5H5v5zm12 7h-3v2h5v-5h-2v3zM14 5v2h3v3h2V5h-5z"/>
+                            </svg>
+                            Out
+                        </button>
+                        <button class="control-button" data-movement="Towards Center">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path d="M5 16h3v3h2v-5H5v2zm3-8H5v2h5V5H8v3zm6 11h2v-3h3v-2h-5v5zm2-11V5h-2v5h5V8h-3z"/>
+                            </svg>
+                            In
+                        </button>
+                        <button class="control-button" data-movement="Pinwheel">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                            </svg>
+                            Pinwheel
+                        </button>
+                        <button class="control-button" data-movement="Spot">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                            Spot
+                        </button>
+                    </div>
+                    <hr class="control-separator">
+                    <div class="button-grid modifiers">
+                        <button class="control-button" data-modifier="loop">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                            </svg>
+                            Loop
+                        </button>
+                        <button class="control-button" data-modifier="fade">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 5-5v10zm2-10l5 5-5 5V7z"/>
+                            </svg>
+                            Fade
+                        </button>
+                        <button class="control-button" data-modifier="phase">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path d="M9.5 4C7.01 4 5 6.01 5 8.5S7.01 13 9.5 13H12v2l3-3-3-3v2H9.5C8.12 11 7 9.88 7 8.5S8.12 6 9.5 6H12V4H9.5zM14.5 11H12V9l-3 3 3 3v-2h2.5c1.38 0 2.5 1.12 2.5 2.5S15.88 18 14.5 18H12v2h2.5c2.49 0 4.5-2.01 4.5-4.5S16.99 11 14.5 11z"/>
+                            </svg>
+                            Phase
+                        </button>
+                        <button class="control-button" data-modifier="build">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="direction-icon">
+                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                            </svg>
+                            Build
+                        </button>
+                    </div>
+                    <div class="button-grid laser-count">
+                        <button class="control-button" data-count="1">1</button>
+                        <button class="control-button" data-count="2">2</button>
+                        <button class="control-button" data-count="4">4</button>
+                        <button class="control-button active" data-count="8">8</button>
+                    </div>
+                </div>
+
+                <!-- Column 4: Beat Sync -->
+                <div class="control-column">
+                    <div class="beat-sync-controls">
+                        <div class="toggle-container">
+                            <div class="toggle" id="beatSyncToggleGrid"></div>
+                            <span>Beat Sync</span>
+                            <input type="number" class="text-input" id="bpmInputGrid" value="140" min="60" max="200">
+                        </div>
+                        <div class="control-group">
+                            <h4 style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Strobe Rate</h4>
+                            <div class="button-grid beat-rates">
+                                <button class="control-button active" data-beat-strobe="Off">Off</button>
+                                <button class="control-button" data-beat-strobe="1/3">1/3</button>
+                                <button class="control-button" data-beat-strobe="1/2">1/2</button>
+                                <button class="control-button" data-beat-strobe="1">1</button>
+                                <button class="control-button" data-beat-strobe="4">4</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <h4 style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Pulse Rate</h4>
+                            <div class="button-grid beat-rates">
+                                <button class="control-button active" data-beat-pulse="Off">Off</button>
+                                <button class="control-button" data-beat-pulse="1/3">1/3</button>
+                                <button class="control-button" data-beat-pulse="1/2">1/2</button>
+                                <button class="control-button" data-beat-pulse="1">1</button>
+                                <button class="control-button" data-beat-pulse="4">4</button>
+                            </div>
+                        </div>
+                        <div class="control-group">
+                            <h4 style="font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;">Speed Rate</h4>
+                            <div class="button-grid beat-rates">
+                                <button class="control-button active" data-beat-speed="Off">Off</button>
+                                <button class="control-button" data-beat-speed="1/3">1/3</button>
+                                <button class="control-button" data-beat-speed="1/2">1/2</button>
+                                <button class="control-button" data-beat-speed="1">1</button>
+                                <button class="control-button" data-beat-speed="4">4</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Column 5: Config -->
+                <div class="control-column">
+                    <div class="control-group">
+                        <h3>Configuration</h3>
+                        <div class="toggle-container">
+                            <div class="toggle" id="oscToggleGrid"></div>
+                            <span>OSC Control</span>
+                        </div>
+                        <div class="toggle-container">
+                            <div class="toggle" id="dmxToggleGrid"></div>
+                            <span>DMX Output</span>
+                        </div>
+                        <div class="toggle-container">
+                            <div class="toggle" id="hazeToggle"></div>
+                            <span>Show Haze</span>
+                        </div>
+                        <div class="toggle-container">
+                            <div class="toggle" id="originsToggle"></div>
+                            <span>Show Origins</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // WebSocket connection
+        const socket = io();
+        let currentState = {};
+        let simulatorVisible = true;
+
+        // Initialize laser grid
+        function initializeLaserGrid() {
+            const grid = document.getElementById('laserGrid');
+            grid.innerHTML = '';
+
+            // Create top lasers (vertical)
+            for (let i = 0; i < 14; i++) {
+                const beam = document.createElement('div');
+                beam.className = 'laser-beam top';
+                beam.id = `top-${i}`;
+                beam.style.left = `${(i + 0.5) * (100/14)}%`;
+                grid.appendChild(beam);
+            }
+
+            // Create side lasers (horizontal)
+            for (let i = 0; i < 14; i++) {
+                const beam = document.createElement('div');
+                beam.className = 'laser-beam side';
+                beam.id = `side-${i}`;
+                beam.style.top = `${(i + 0.5) * (100/14)}%`;
+                grid.appendChild(beam);
+            }
+        }
+
+        // Update laser visualization
+        function updateLasers(lasers) {
+            lasers.forEach(laser => {
+                const element = document.getElementById(laser.id);
+                if (element) {
+                    const opacity = laser.brightness / 255;
+                    element.style.opacity = opacity;
+                    
+                    // Add glow effect for bright lasers
+                    if (opacity > 0.3) {
+                        element.style.boxShadow = `0 0 ${opacity * 20}px var(--primary-red-glow)`;
+                    } else {
+                        element.style.boxShadow = 'none';
+                    }
+                }
+            });
+        }
+
+        // Toggle simulator visibility
+        function toggleSimulator() {
+            const section = document.getElementById('simulatorSection');
+            const mainContent = document.getElementById('mainContent');
+            const button = document.querySelector('.toggle-simulator');
+            const showBtn = document.getElementById('showSimulatorBtn');
+
+            simulatorVisible = !simulatorVisible;
+            
+            if (simulatorVisible) {
+                section.classList.remove('hidden');
+                mainContent.classList.remove('simulator-hidden');
+                button.textContent = 'Hide Simulator';
+                showBtn.classList.remove('visible');
+            } else {
+                section.classList.add('hidden');
+                mainContent.classList.add('simulator-hidden');
+                button.textContent = 'Show Simulator';
+                showBtn.classList.add('visible');
+            }
+        }
+
+        // Send control change
+        function sendControlChange(control, value) {
+            socket.emit('control_change', { control: control, value: value });
+        }
+
+        // Sync slider values between vertical and horizontal versions
+        function syncSliders(sourceId, targetId, valueId) {
+            const source = document.getElementById(sourceId);
+            const target = document.getElementById(targetId);
+            const valueSpan = document.getElementById(valueId);
+            
+            if (source && target && valueSpan) {
+                target.value = source.value;
+                valueSpan.textContent = source.value;
+            }
+        }
+
+        // Update UI from state
+        function updateUI(state) {
+            currentState = state;
+            
+            if (state.lasers) {
+                updateLasers(state.lasers);
+            }
+
+            if (state.controls) {
+                const controls = state.controls;
+                
+                // Update sliders (both versions)
+                ['dimmer', 'strobe', 'pulse', 'speed'].forEach(control => {
+                    const value = controls[control === 'dimmer' ? 'master_dimmer' : control === 'speed' ? 'scroll_rate' : control];
+                    document.getElementById(control).value = value;
+                    document.getElementById(control + 'Value').textContent = value;
+                    // Sync vertical sliders
+                    const vSlider = document.getElementById('v' + control.charAt(0).toUpperCase() + control.slice(1));
+                    const vValue = document.getElementById('v' + control.charAt(0).toUpperCase() + control.slice(1) + 'Value');
+                    if (vSlider) vSlider.value = value;
+                    if (vValue) vValue.textContent = value;
+                });
+
+                // Update button states
+                updateButtonStates(controls);
+            }
+        }
+
+        function updateButtonStates(controls) {
+            // Effect mode
+            document.querySelectorAll('[data-effect]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.effect === controls.effect_application);
+            });
+
+            // Visual presets
+            document.querySelectorAll('[data-preset]').forEach(btn => {
+                const isActive = (controls.custom_preset === btn.dataset.preset) || 
+                                (controls.visual_preset === btn.dataset.preset);
+                btn.classList.toggle('active', isActive);
+            });
+
+            // Direction
+            document.querySelectorAll('[data-direction]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.direction === controls.scroll_direction);
+            });
+
+            // Movement
+            document.querySelectorAll('[data-movement]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.movement === controls.scroll_direction);
+            });
+
+            // Modifiers
+            document.querySelector('[data-modifier="loop"]')?.classList.toggle('active', controls.loop_enabled);
+            document.querySelector('[data-modifier="fade"]')?.classList.toggle('active', controls.fade_enabled);
+            document.querySelector('[data-modifier="phase"]')?.classList.toggle('active', controls.phase_enabled);
+            document.querySelector('[data-modifier="build"]')?.classList.toggle('active', controls.build_enabled);
+
+            // Laser count
+            document.querySelectorAll('[data-count]').forEach(btn => {
+                btn.classList.toggle('active', parseInt(btn.dataset.count) === controls.scroll_laser_count);
+            });
+
+            // Beat sync
+            document.getElementById('beatSyncToggle')?.classList.toggle('active', controls.beat_sync_enabled);
+            document.getElementById('beatSyncToggleGrid')?.classList.toggle('active', controls.beat_sync_enabled);
+            
+            // Beat rates
+            document.querySelectorAll('[data-beat-strobe]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.beatStrobe === controls.beat_strobe_rate);
+            });
+            document.querySelectorAll('[data-beat-pulse]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.beatPulse === controls.beat_pulse_rate);
+            });
+            document.querySelectorAll('[data-beat-speed]').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.beatSpeed === controls.beat_speed_rate);
+            });
+        }
+
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeLaserGrid();
+
+            // Slider event listeners (horizontal)
+            ['dimmer', 'strobe', 'pulse', 'speed'].forEach(id => {
+                const slider = document.getElementById(id);
+                const valueSpan = document.getElementById(id + 'Value');
+                
+                slider.addEventListener('input', function() {
+                    valueSpan.textContent = this.value;
+                    syncSliders(id, 'v' + id.charAt(0).toUpperCase() + id.slice(1), 'v' + id.charAt(0).toUpperCase() + id.slice(1) + 'Value');
+                    
+                    let controlName;
+                    switch(id) {
+                        case 'dimmer': controlName = 'master_dimmer'; break;
+                        case 'speed': controlName = 'scroll_rate'; break;
+                        default: controlName = id;
+                    }
+                    
+                    sendControlChange(controlName, parseInt(this.value));
+                });
+            });
+
+            // Vertical slider event listeners
+            ['vDimmer', 'vStrobe', 'vPulse', 'vSpeed'].forEach(id => {
+                const slider = document.getElementById(id);
+                const valueSpan = document.getElementById(id + 'Value');
+                const horizontalId = id.substring(1).toLowerCase();
+                
+                if (slider) {
+                    slider.addEventListener('input', function() {
+                        valueSpan.textContent = this.value;
+                        syncSliders(id, horizontalId, horizontalId + 'Value');
+                        
+                        let controlName;
+                        switch(horizontalId) {
+                            case 'dimmer': controlName = 'master_dimmer'; break;
+                            case 'speed': controlName = 'scroll_rate'; break;
+                            default: controlName = horizontalId;
+                        }
+                        
+                        sendControlChange(controlName, parseInt(this.value));
+                    });
+                }
+            });
+
+            // Button event listeners
+            document.querySelectorAll('[data-effect]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('[data-effect]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    sendControlChange('effect_application', this.dataset.effect);
+                });
+            });
+
+            document.querySelectorAll('[data-preset]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('[data-preset]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // Check if custom preset
+                    const customPresets = ['Bracket', 'L Bracket', 'S Dbl Cross', 'Dbl Cross', 'L Dbl Cross', '9 Cubes'];
+                    if (customPresets.includes(this.dataset.preset)) {
+                        sendControlChange('custom_preset', this.dataset.preset);
+                    } else {
+                        sendControlChange('visual_preset', this.dataset.preset);
+                        sendControlChange('custom_preset', null);
+                    }
+                });
+            });
+
+            document.querySelectorAll('[data-direction]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('[data-direction], [data-movement]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    sendControlChange('scroll_direction', this.dataset.direction);
+                });
+            });
+
+            document.querySelectorAll('[data-movement]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('[data-direction], [data-movement]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    sendControlChange('scroll_direction', this.dataset.movement);
+                });
+            });
+
+            document.querySelectorAll('[data-modifier]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const modifier = this.dataset.modifier;
+                    const isActive = this.classList.contains('active');
+                    
+                    // Handle mutual exclusivity between build and other modifiers
+                    if (modifier === 'build' && !isActive) {
+                        // Disable other modifiers
+                        ['loop', 'fade', 'phase'].forEach(m => {
+                            document.querySelectorAll(`[data-modifier="${m}"]`).forEach(btn => btn.classList.remove('active'));
+                            sendControlChange(m + '_enabled', false);
+                        });
+                    } else if (modifier !== 'build' && !isActive) {
+                        // Disable build if enabling other modifier
+                        document.querySelectorAll('[data-modifier="build"]').forEach(btn => btn.classList.remove('active'));
+                        sendControlChange('build_enabled', false);
+                    }
+                    
+                    this.classList.toggle('active');
+                    sendControlChange(modifier + '_enabled', !isActive);
+                });
+            });
+
+            document.querySelectorAll('[data-count]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('[data-count]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    sendControlChange('scroll_laser_count', parseInt(this.dataset.count));
+                });
+            });
+
+            // Beat sync toggles
+            document.querySelectorAll('#beatSyncToggle, #beatSyncToggleGrid').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    const isActive = this.classList.contains('active');
+                    document.querySelectorAll('#beatSyncToggle, #beatSyncToggleGrid').forEach(t => t.classList.toggle('active', !isActive));
+                    sendControlChange('beat_sync_enabled', !isActive);
+                });
+            });
+
+            // BPM inputs
+            document.querySelectorAll('#bpmInput, #bpmInputGrid').forEach(input => {
+                input.addEventListener('change', function() {
+                    document.querySelectorAll('#bpmInput, #bpmInputGrid').forEach(i => i.value = this.value);
+                    sendControlChange('bpm', parseInt(this.value));
+                });
+            });
+
+            // Beat rate buttons
+            document.querySelectorAll('[data-beat-strobe]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('[data-beat-strobe]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    sendControlChange('beat_strobe_rate', this.dataset.beatStrobe);
+                });
+            });
+
+            document.querySelectorAll('[data-beat-pulse]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('[data-beat-pulse]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    sendControlChange('beat_pulse_rate', this.dataset.beatPulse);
+                });
+            });
+
+            document.querySelectorAll('[data-beat-speed]').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('[data-beat-speed]').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    sendControlChange('beat_speed_rate', this.dataset.beatSpeed);
+                });
+            });
+
+            // OSC/DMX toggles
+            document.querySelectorAll('#oscToggle, #oscToggleGrid').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    const isActive = this.classList.contains('active');
+                    document.querySelectorAll('#oscToggle, #oscToggleGrid').forEach(t => t.classList.toggle('active', !isActive));
+                    sendControlChange('osc_enabled', !isActive);
+                });
+            });
+
+            document.querySelectorAll('#dmxToggle, #dmxToggleGrid').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    const isActive = this.classList.contains('active');
+                    document.querySelectorAll('#dmxToggle, #dmxToggleGrid').forEach(t => t.classList.toggle('active', !isActive));
+                    sendControlChange('dmx_enabled', !isActive);
+                });
+            });
+        });
+
+        // Socket event listeners
+        socket.on('connect', function() {
+            document.getElementById('status').classList.remove('disconnected');
+            console.log('Connected to simulator');
+        });
+
+        socket.on('disconnect', function() {
+            document.getElementById('status').classList.add('disconnected');
+            console.log('Disconnected from simulator');
+        });
+
+        socket.on('state_update', function(state) {
+            updateUI(state);
+        });
+
+        socket.on('error', function(error) {
+            console.error('Simulator error:', error);
+        });
+    </script>
+</body>
+</html>
