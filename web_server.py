@@ -85,7 +85,8 @@ def handle_disconnect():
 @socketio.on('control_change')
 def handle_control_change(data):
     """Handle control changes from the frontend."""
-    debug_print(f"Received control change: {data}")
+    print(f"🔧 RECEIVED: {data}")  # Always print, not debug_print
+    
     name_map = { 
         "visualPreset": "visual_preset", 
         "effectApplication": "effect_application", 
@@ -93,7 +94,7 @@ def handle_control_change(data):
         "laserMoveSpeed": "laser_move_speed",
         "shockerSpeed": "shocker_speed",
         "saberSpeed": "saber_speed",
-        "mhSpeed": "mh_speed",  # ADD THIS LINE
+        "mhSpeed": "mh_speed",
         "scrollLaserCount": "scroll_laser_count", 
         "scrollFade": "scroll_fade", 
         "scrollBuildEffect": "scroll_build_effect", 
@@ -106,7 +107,7 @@ def handle_control_change(data):
         "beatLaserMoveSpeedRate": "beat_laser_move_speed_rate",
         "beatShockerSpeedRate": "beat_shocker_speed_rate",
         "beatSaberSpeedRate": "beat_saber_speed_rate",
-        "beatMhSpeedRate": "beat_mh_speed_rate",  # ADD THIS LINE
+        "beatMhSpeedRate": "beat_mh_speed_rate",
         "dimmer": "dimmer", 
         "pulse": "pulse", 
         "strobe": "strobe",
@@ -114,10 +115,20 @@ def handle_control_change(data):
         "linearGradient": "linear_gradient",
         "showLaserOrigins": "show_laser_origins"
     }
+    
     js_name = data.get('control')
     value = data.get('value')
     python_name = name_map.get(js_name, js_name)
-    debug_print(f"Mapping {js_name} -> {python_name} = {value}")
+    
+    # Always print these key values for debugging
+    print(f"🔄 MAPPING: {js_name} -> {python_name} = {value} (type: {type(value)})")
+    
+    # Add special logging for the problematic controls
+    if python_name == "visual_preset":
+        print(f"🎯 VISUAL PRESET: Sending '{value}' to backend")
+    elif python_name == "scroll_direction":  
+        print(f"🎯 SCROLL DIRECTION: Sending '{value}' to backend")
+    
     simulator._handle_osc_control(python_name, value)
 
 if __name__ == '__main__':

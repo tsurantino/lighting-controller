@@ -123,6 +123,9 @@ function App() {
 
     // Send each changed control to the backend
     for (const [control, value] of Object.entries(backendControls)) {
+      // ✅ ADD DEBUGGING HERE
+      console.log("🔧 Sending to backend:", control, "=", value, typeof value);
+      
       socket.emit('control_change', {
         control: control,
         value: value,
@@ -210,6 +213,7 @@ function App() {
                   hazeDensity={controls.hazeDensity}
                   linearGradient={controls.linearGradient}
                   fixtures={controls.fixtures}
+                  masterDimmer={controls.dimmer}
                 />
               </div>
             )}

@@ -199,3 +199,27 @@ export interface ControlsState {
     SH2: ShockerFixture;
   };
 }
+
+export interface LaserSimulatorProps {
+  lasers: Laser[];
+  showLaserOrigins: boolean;
+  hazeDensity: number;
+  linearGradient: number;
+  fixtures?: {
+    MH1: MovingHeadFixture;
+    MH2: MovingHeadFixture;
+    SA1: SaberBeamFixture;
+    SA2: SaberBeamFixture;
+    SA3: SaberBeamFixture;
+    J1: JoltFixture;
+    J2: JoltFixture;
+    SH1: ShockerFixture;
+    SH2: ShockerFixture;
+  };
+  masterDimmer: number; // ✅ 0-100 (master brightness control)
+  saberTargets?: {      // ✅ Optional custom targets for saber beams
+    SA1?: { x: number; y: number };
+    SA2?: { x: number; y: number };
+    SA3?: { x: number; y: number };
+  };
+}
