@@ -1,5 +1,6 @@
 // src/types/controls.ts
 import { LaserData } from './laser';
+import { Fixture } from './fixtures';
 
 export enum VisualPreset {
   Grid = 'Grid',
@@ -78,8 +79,10 @@ export interface ControlsState {
   
   // Display options
   showLaserOrigins: boolean;
+  hazeDensity: number;
+  linearGradient: number;
   
   // Fixture configuration
-  fixtures: any; // Replace with proper fixture types
+  fixtures: Record<string, Fixture>;
   lasers: LaserData[];
 }

@@ -1,4 +1,6 @@
 // src/components/ui/Toggle.tsx
+import React from 'react';
+
 interface ToggleProps {
   checked: boolean;
   onChange: () => void;
@@ -8,7 +10,7 @@ interface ToggleProps {
   label?: string;
 }
 
-export const Toggle: React.FC<ToggleProps> = ({
+const Toggle: React.FC<ToggleProps> = ({
   checked,
   onChange,
   disabled = false,
@@ -68,3 +70,5 @@ export const Toggle: React.FC<ToggleProps> = ({
 
   return component;
 };
+
+export default Toggle;

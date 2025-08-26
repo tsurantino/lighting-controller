@@ -45,6 +45,8 @@ export const INITIAL_CONTROLS_STATE: ControlsState = {
   
   // Display options
   showLaserOrigins: false,
+  hazeDensity: 30,        // Added missing property
+  linearGradient: 70,     // Added missing property
   
   // Fixture configuration (initialize as empty)
   fixtures: {},
