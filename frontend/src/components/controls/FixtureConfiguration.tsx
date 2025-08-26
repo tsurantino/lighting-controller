@@ -264,10 +264,10 @@ const FixtureCard: React.FC<{
               Brightness: {fixture.brightness}%
             </div>
             <svg 
-              className={`w-4 h-4 text-gray-400 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+              className={`w-4 h-4 text-gray-400 transform transition-transform ${isExpanded ? 'rotate-180' : ''}`}
               fill="none" 
-              viewBox="0 0 24 24" 
-              stroke="currentColor"
+              stroke="currentColor" 
+              viewBox="0 0 24 24"
             >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
@@ -276,7 +276,7 @@ const FixtureCard: React.FC<{
       </button>
       
       {isExpanded && (
-        <div className="p-4 bg-gray-800">
+        <div className="px-4 py-3 border-t border-gray-600 bg-gray-800">
           {renderFixtureConfig()}
         </div>
       )}
@@ -284,63 +284,33 @@ const FixtureCard: React.FC<{
   );
 };
 
-const FixtureConfiguration: React.FC = () => {
-  const { controls, setControls, isLoading } = useControlsContext();
+interface FixtureConfigurationProps {
+  fixtures: Record<string, Fixture>;
+  onFixtureUpdate: (fixtureId: string, updates: Partial<Fixture>) => void;
+}
 
-  const updateFixture = (fixtureId: string) => (updates: any) => {
-    setControls(prev => ({
-      ...prev,
-      fixtures: {
-        ...prev.fixtures,
-        [fixtureId]: {
-          ...prev.fixtures[fixtureId],
-          ...updates
-        }
-      }
-    }));
-  };
-
-  if (!controls.fixtures || Object.keys(controls.fixtures).length === 0) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-white">Fixture Configuration</h3>
-          {isLoading && (
-            <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-          )}
-        </div>
-        
-        <div className="text-center py-8 text-gray-400">
-          <p>No fixtures configured</p>
-          <p className="text-sm mt-2">Fixtures will appear here when loaded from the server</p>
-        </div>
-      </div>
-    );
-  }
-
+const FixtureConfiguration: React.FC<FixtureConfigurationProps> = ({ 
+  fixtures, 
+  onFixtureUpdate 
+}) => {
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold text-white">Fixture Configuration</h3>
-        {isLoading && (
-          <div className="w-4 h-4 border-2 border-red-500 border-t-transparent rounded-full animate-spin" />
-        )}
+        <div className="text-xs text-gray-400">
+          {Object.keys(fixtures).length} fixtures configured
+        </div>
       </div>
-
+      
       <div className="space-y-3">
-        {Object.entries(controls.fixtures).map(([fixtureId, fixture]) => (
+        {Object.entries(fixtures).map(([fixtureId, fixture]) => (
           <FixtureCard
             key={fixtureId}
             fixtureId={fixtureId}
             fixture={fixture}
-            onUpdate={updateFixture(fixtureId)}
+            onUpdate={(updates) => onFixtureUpdate(fixtureId, updates)}
           />
         ))}
-      </div>
-
-      <div className="text-xs text-gray-400 p-3 bg-gray-700 rounded">
-        <p><strong>Note:</strong> Changes to fixture configuration will update DMX output in real-time. 
-        Make sure your DMX addresses don't conflict with other fixtures.</p>
       </div>
     </div>
   );

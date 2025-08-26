@@ -93,26 +93,26 @@ export const FadeToggleButton: React.FC<ModifierButtonProps> = ({
 };
 
 interface ModifierControlsProps {
-  fadeEnabled: boolean;
-  loopEnabled: boolean;
-  phaseEnabled: boolean;
   buildEnabled: boolean;
-  onFadeToggle: () => void;
-  onLoopToggle: () => void;
-  onPhaseToggle: () => void;
   onBuildToggle: () => void;
+  phaseEnabled: boolean;
+  onPhaseToggle: () => void;
+  loopEnabled: boolean;
+  onLoopToggle: () => void;
+  fadeEnabled: boolean;
+  onFadeToggle: () => void;
   disabled?: boolean;
 }
 
 export const ModifierControls: React.FC<ModifierControlsProps> = ({
-  fadeEnabled,
-  loopEnabled,
-  phaseEnabled,
   buildEnabled,
-  onFadeToggle,
-  onLoopToggle,
-  onPhaseToggle,
   onBuildToggle,
+  phaseEnabled,
+  onPhaseToggle,
+  loopEnabled,
+  onLoopToggle,
+  fadeEnabled,
+  onFadeToggle,
   disabled = false,
 }) => {
   return (
