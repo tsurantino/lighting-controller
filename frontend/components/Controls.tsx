@@ -230,7 +230,13 @@ const ScrollButton: React.FC<{
   const iconInfo = SCROLL_ICONS[direction];
   return (
     <button
-      onClick={() => onSelect(direction)}
+      onClick={() => {
+        // Add debugging here
+        console.log("🎯 FRONTEND: ScrollButton clicked for direction:", direction);
+        console.log("🎯 FRONTEND: Is this the None button?", direction === ScrollDirection.None);
+        console.log("🎯 FRONTEND: About to call onSelect with:", direction);
+        onSelect(direction);
+      }}
       className={`px-2 py-4 rounded-md transition-colors duration-200 flex items-center justify-center
         ${selectedDirection === direction ? 'bg-red-600 text-white' : 'bg-gray-700 hover:bg-gray-600'}`}
       aria-label={iconInfo.label}
@@ -824,7 +830,19 @@ const Controls: React.FC<ControlsProps> = ({ controls, setControls, section, ver
   };
   
   const handleScrollSelect = (direction: ScrollDirection) => {
-    setControls(prev => ({...prev, scrollDirection: direction}));
+    // Add debugging to see if this function is being called
+    console.log("🎯 FRONTEND: handleScrollSelect called with:", direction);
+    console.log("🎯 FRONTEND: Direction type:", typeof direction);
+    console.log("🎯 FRONTEND: Direction value:", direction);
+    console.log("🎯 FRONTEND: Direction === ScrollDirection.None?", direction === ScrollDirection.None);
+    
+    setControls(prev => {
+      const newState = {...prev, scrollDirection: direction};
+      console.log("🎯 FRONTEND: Previous scrollDirection:", prev.scrollDirection);
+      console.log("🎯 FRONTEND: New scrollDirection:", newState.scrollDirection);
+      console.log("🎯 FRONTEND: Values are different?", prev.scrollDirection !== direction);
+      return newState;
+    });
   }
 
   const handleToggle = (key: keyof ControlsState) => () => {

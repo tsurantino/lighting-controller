@@ -89,6 +89,11 @@ function App() {
 
   const handleSetControls = (newControls: React.SetStateAction<ControlsState>) => {
     const updatedControls = typeof newControls === 'function' ? newControls(controls) : newControls;
+    console.log("🚀 APP: handleSetControls called");
+    console.log("🚀 APP: updatedControls.scrollDirection:", updatedControls.scrollDirection);
+    console.log("🚀 APP: controls.scrollDirection:", controls.scrollDirection);
+    console.log("🚀 APP: controlsRef.current.scrollDirection:", controlsRef.current.scrollDirection);
+    
     setControls(updatedControls);
 
     // Convert frontend controls to backend format
@@ -97,14 +102,27 @@ function App() {
     for (const key in updatedControls) {
       const typedKey = key as keyof ControlsState;
       const currentValue = updatedControls[typedKey];
-      const previousValue = controlsRef.current[typedKey];
+      const previousControls = controls;
+      const previousValue = previousControls[typedKey];
+      
+      // Add debugging for scrollDirection specifically
+      if (typedKey === 'scrollDirection') {
+        console.log("🚀 APP: Processing scrollDirection");
+        console.log("🚀 APP: currentValue:", currentValue, typeof currentValue);
+        console.log("🚀 APP: previousValue:", previousValue, typeof previousValue);
+        console.log("🚀 APP: currentValue !== previousValue?", currentValue !== previousValue);
+      }
       
       if (currentValue !== previousValue) {
+        console.log("🚀 APP: Value changed for key:", typedKey, "from", previousValue, "to", currentValue);
+        
         // Handle the combined strobe/pulse control
         if (typedKey === 'strobePulseRate' || typedKey === 'strobeOrPulse') {
+          console.log("🚀 APP: Skipping strobe/pulse control");
           // These are handled by the useEffect above
           continue;
         } else if (typedKey === 'fixtures') {
+          console.log("🚀 APP: Handling fixtures control");
           // Handle fixture configuration updates separately
           socket.emit('control_change', {
             control: 'fixtures',
@@ -112,18 +130,25 @@ function App() {
           });
           continue;
         } else if (typedKey === 'lasers') {
+          console.log("🚀 APP: Skipping lasers control");
           // Don't send laser data back to server - it's read-only
           continue;
         } else {
+          console.log("🚀 APP: Adding to backendControls:", typedKey, "=", currentValue);
           // Map other controls directly
           backendControls[typedKey] = currentValue;
+        }
+      } else {
+        if (typedKey === 'scrollDirection') {
+          console.log("🚀 APP: scrollDirection not changed, skipping");
         }
       }
     }
 
+    console.log("🚀 APP: Final backendControls:", backendControls);
+
     // Send each changed control to the backend
     for (const [control, value] of Object.entries(backendControls)) {
-      // ✅ ADD DEBUGGING HERE
       console.log("🔧 Sending to backend:", control, "=", value, typeof value);
       
       socket.emit('control_change', {

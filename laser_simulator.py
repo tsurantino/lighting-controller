@@ -381,17 +381,40 @@ class LaserSimulator:
                 if control_name == "visual_preset":
                     setattr(self.controls, control_name, VisualPreset(value))
                 elif control_name == "scroll_direction":
-                    setattr(self.controls, control_name, ScrollDirection(value))
+                    # Add debugging and ensure proper enum conversion
+                    print(f"🎯 SCROLL_DIRECTION: Received '{value}' (type: {type(value)})")
+                    
+                    # Handle the enum conversion more robustly
+                    if isinstance(value, str):
+                        # Try to find the enum member by value
+                        scroll_dir = None
+                        for direction in ScrollDirection:
+                            if direction.value == value:
+                                scroll_dir = direction
+                                break
+                        
+                        if scroll_dir is None:
+                            print(f"⚠️  Unknown scroll direction: {value}")
+                            scroll_dir = ScrollDirection.NONE  # Default fallback
+                        
+                        print(f"🎯 SCROLL_DIRECTION: Setting to {scroll_dir} (enum member: {scroll_dir.name})")
+                        setattr(self.controls, control_name, scroll_dir)
+                    else:
+                        # If it's already an enum, use it directly
+                        setattr(self.controls, control_name, value)
+                        
                 elif control_name == "effect_application":
                     setattr(self.controls, control_name, EffectApplication(value))
-                elif control_name in ["beat_strobe_rate", "beat_pulse_rate", "beat_laser_move_speed_rate", "beat_shocker_speed_rate", "beat_saber_speed_rate"]: # Added new beat rates
+                elif control_name in ["beat_strobe_rate", "beat_pulse_rate", "beat_laser_move_speed_rate", "beat_shocker_speed_rate", "beat_saber_speed_rate"]:
                     setattr(self.controls, control_name, BeatRate(value))
                 else:
                     setattr(self.controls, control_name, value)
-            except ValueError:
-                print(f"Warning: Invalid value '{value}' for control '{control_name}'")
-    
-    # ALL YOUR ORIGINAL METHODS BELOW - COMPLETE IMPLEMENTATIONS
+            except ValueError as e:
+                print(f"Warning: Invalid value '{value}' for control '{control_name}': {e}")
+                # For scroll_direction, set to NONE as fallback
+                if control_name == "scroll_direction":
+                    print(f"🎯 SCROLL_DIRECTION: Fallback to NONE due to error")
+                    setattr(self.controls, control_name, ScrollDirection.NONE)
     
     def update(self, current_time: Optional[float] = None):
         """Update all laser brightnesses based on current controls and time."""
@@ -422,14 +445,27 @@ class LaserSimulator:
         self._apply_dimmer()
         
         # Step 3: Apply Pulse
-        self._apply_pulse(current_time, use_beat_pulse, beat_interval) # Pass new args
+        self._apply_pulse(current_time, use_beat_pulse, beat_interval)
         
         # Step 4: Apply Strobe
-        self._apply_strobe(current_time, use_beat_strobe, beat_interval) # Pass new args
+        self._apply_strobe(current_time, use_beat_strobe, beat_interval)
         
-        # Step 5: Apply Movement/Scroll
-        if self.controls.scroll_direction != ScrollDirection.NONE:
+        # Step 5: Apply Movement/Scroll - ADD DEBUGGING HERE
+        scroll_check = self.controls.scroll_direction != ScrollDirection.NONE
+        
+        # Add temporary debugging (remove this after fixing)
+        if hasattr(self, '_last_scroll_direction') and self._last_scroll_direction != self.controls.scroll_direction:
+            print(f"🎯 SCROLL CHANGE: {self._last_scroll_direction} -> {self.controls.scroll_direction}")
+            print(f"🎯 SCROLL CHECK: scroll_direction != NONE? {scroll_check}")
+        self._last_scroll_direction = self.controls.scroll_direction
+        
+        if scroll_check:
             self._apply_scroll(current_time, delta_time, base_brightness)
+        else:
+            # Ensure we clear any persistent scroll state when stopping
+            self.last_progress = {}
+            self.built_lasers = [0] * (self.TOP_LASER_COUNT + self.SIDE_LASER_COUNT)
+            self.spot_lasers = [False] * (self.TOP_LASER_COUNT + self.SIDE_LASER_COUNT)
         
         # Step 6: Update DMX output
         if self.dmx_controller:
