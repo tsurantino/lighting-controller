@@ -203,7 +203,7 @@ export const INITIAL_CONTROLS_STATE: ControlsState = {
   shockerSpeed: 50,
   saberSpeed: 50,
   mhSpeed: 50,
-  scrollLaserCount: 5,
+  scrollLaserCount: 8,
   scrollFade: 50,
   scrollBuildEffect: false,
   scrollPhase: 0,

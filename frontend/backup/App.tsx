@@ -1,63 +1,17 @@
-import React, { useState, useEffect, useRef } from 'react';
-import io from 'socket.io-client';
+import React, { useState, useEffect } from 'react';
 import LaserSimulator from './components/LaserSimulator';
 import Controls from './components/Controls';
-import { Laser, LaserData, LaserOrientation, ControlsState, ViewMode } from './types';
+import { ControlsState } from './types';
 import { INITIAL_CONTROLS_STATE, updateFixtureDmxValues } from './constants';
-
-const socket = io('http://localhost:5000');
+import { useSocket, useControlsSync } from './hooks';
 
 function App() {
-  const [lasers, setLasers] = useState<Laser[]>([]);
+  const { socket, isConnected, lasers } = useSocket();
   const [controls, setControls] = useState<ControlsState>(INITIAL_CONTROLS_STATE);
-  const [isConnected, setIsConnected] = useState(socket.connected);
-  const [viewMode, setViewMode] = useState<ViewMode>('landscape'); // Default to landscape
   const [showConfig, setShowConfig] = useState(false);
   const [showSimulator, setShowSimulator] = useState(true);
 
-  const controlsRef = useRef(controls);
-
-  useEffect(() => {
-    controlsRef.current = controls;
-
-    socket.on('connect', () => setIsConnected(true));
-    socket.on('disconnect', () => setIsConnected(false));
-    socket.on('state_update', (serverState: { lasers: any[] }) => {
-      setLasers(serverState.lasers); // Keep existing functionality
-      
-      if (serverState.lasers) {
-        const laserData: LaserData[] = serverState.lasers.map((laser: any) => ({
-          id: laser.id,                    // "top-0", "side-5", etc.
-          orientation: laser.orientation === 'top' ? LaserOrientation.Top : LaserOrientation.Side,
-          brightness: laser.brightness,    // 0-255
-          dmxAddress: laser.dmx_address || 0,
-        }));
-        
-        // Update the controls state with the laser data
-        setControls(prev => ({
-          ...prev,
-          lasers: laserData
-        }));
-      }
-    });
-
-    return () => {
-      socket.off('connect');
-      socket.off('disconnect');
-      socket.off('state_update');
-    };
-  }, []);
-
-  // Send separate strobe/pulse values when the toggle or rate changes
-  useEffect(() => {
-    if (controls.strobeOrPulse === 'strobe') {
-      socket.emit('control_change', { control: 'strobe', value: controls.strobePulseRate });
-      socket.emit('control_change', { control: 'pulse', value: 0 });
-    } else {
-      socket.emit('control_change', { control: 'strobe', value: 0 });
-      socket.emit('control_change', { control: 'pulse', value: controls.strobePulseRate });
-    }
-  }, [controls.strobeOrPulse, controls.strobePulseRate]);
+  const { sendControlsToBackend } = useControlsSync(socket, controls, setControls);
 
   useEffect(() => {
     // Update all fixture DMX values when dimmer or mhSpeed changes
@@ -72,7 +26,7 @@ function App() {
         if (fixture.type === 'MovingHead') {
           const updatedFixture = {
             ...fixture,
-            speed: prev.mhSpeed, // Update speed property from mhSpeed slider
+            speed: prev.mhSpeed,
           };
           updatedFixtures[fixtureId as keyof typeof updatedFixtures] = updateFixtureDmxValues(updatedFixture, prev.dimmer);
         } else {
@@ -85,77 +39,16 @@ function App() {
         fixtures: updatedFixtures
       };
     });
-  }, [controls.dimmer, controls.mhSpeed]); // Watch for changes to dimmer and mhSpeed
+  }, [controls.dimmer, controls.mhSpeed]);
 
   const handleSetControls = (newControls: React.SetStateAction<ControlsState>) => {
     const updatedControls = typeof newControls === 'function' ? newControls(controls) : newControls;
     console.log("🚀 APP: handleSetControls called");
     console.log("🚀 APP: updatedControls.scrollDirection:", updatedControls.scrollDirection);
     console.log("🚀 APP: controls.scrollDirection:", controls.scrollDirection);
-    console.log("🚀 APP: controlsRef.current.scrollDirection:", controlsRef.current.scrollDirection);
     
     setControls(updatedControls);
-
-    // Convert frontend controls to backend format
-    const backendControls: any = {};
-    
-    for (const key in updatedControls) {
-      const typedKey = key as keyof ControlsState;
-      const currentValue = updatedControls[typedKey];
-      const previousControls = controls;
-      const previousValue = previousControls[typedKey];
-      
-      // Add debugging for scrollDirection specifically
-      if (typedKey === 'scrollDirection') {
-        console.log("🚀 APP: Processing scrollDirection");
-        console.log("🚀 APP: currentValue:", currentValue, typeof currentValue);
-        console.log("🚀 APP: previousValue:", previousValue, typeof previousValue);
-        console.log("🚀 APP: currentValue !== previousValue?", currentValue !== previousValue);
-      }
-      
-      if (currentValue !== previousValue) {
-        console.log("🚀 APP: Value changed for key:", typedKey, "from", previousValue, "to", currentValue);
-        
-        // Handle the combined strobe/pulse control
-        if (typedKey === 'strobePulseRate' || typedKey === 'strobeOrPulse') {
-          console.log("🚀 APP: Skipping strobe/pulse control");
-          // These are handled by the useEffect above
-          continue;
-        } else if (typedKey === 'fixtures') {
-          console.log("🚀 APP: Handling fixtures control");
-          // Handle fixture configuration updates separately
-          socket.emit('control_change', {
-            control: 'fixtures',
-            value: currentValue,
-          });
-          continue;
-        } else if (typedKey === 'lasers') {
-          console.log("🚀 APP: Skipping lasers control");
-          // Don't send laser data back to server - it's read-only
-          continue;
-        } else {
-          console.log("🚀 APP: Adding to backendControls:", typedKey, "=", currentValue);
-          // Map other controls directly
-          backendControls[typedKey] = currentValue;
-        }
-      } else {
-        if (typedKey === 'scrollDirection') {
-          console.log("🚀 APP: scrollDirection not changed, skipping");
-        }
-      }
-    }
-
-    console.log("🚀 APP: Final backendControls:", backendControls);
-
-    // Send each changed control to the backend
-    for (const [control, value] of Object.entries(backendControls)) {
-      console.log("🔧 Sending to backend:", control, "=", value, typeof value);
-      
-      socket.emit('control_change', {
-        control: control,
-        value: value,
-      });
-    }
+    sendControlsToBackend(updatedControls, controls);
   };
 
   return (
@@ -175,13 +68,6 @@ function App() {
         
         {/* Control Buttons */}
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => setViewMode(viewMode === 'landscape' ? 'pane' : 'landscape')}
-            className="px-4 py-2 rounded-md font-medium transition-colors duration-200 bg-gray-700 text-gray-300 hover:bg-gray-600"
-          >
-            {viewMode === 'landscape' ? 'Landscape' : 'Pane'}
-          </button>
-          
           <button
             onClick={() => setShowSimulator(!showSimulator)}
             className={`px-4 py-2 rounded-md font-medium transition-colors duration-200 ${
@@ -206,44 +92,29 @@ function App() {
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content - Side-by-side Layout */}
       <main className="flex-grow">
-        {viewMode === 'pane' ? (
-          /* PANE LAYOUT - Simple side-by-side */
-          <div className="flex gap-6 h-full">
-             {showSimulator && (
-               <div className="w-1/3 flex-shrink-0">
-                   <LaserSimulator 
-                      lasers={lasers} 
-                      showLaserOrigins={controls.showLaserOrigins} 
-                      hazeDensity={controls.hazeDensity} 
-                      linearGradient={controls.linearGradient}
-                      fixtures={controls.fixtures}
-                   />
-               </div>
-             )}
-             <div className={showSimulator ? "flex-grow" : "w-full"}>
-                 <Controls controls={controls} setControls={handleSetControls} />
-             </div>
-          </div>
-        ) : (
-          /* LANDSCAPE LAYOUT - Row-based layout */
-          <div className="flex flex-col gap-6 h-full">
-            {/* Row 1: Simulator - Full Width */}
-            {showSimulator && (
-              <div className="w-full">
-                <LaserSimulator
-                  lasers={lasers}
-                  showLaserOrigins={controls.showLaserOrigins}
-                  hazeDensity={controls.hazeDensity}
-                  linearGradient={controls.linearGradient}
-                  fixtures={controls.fixtures}
-                  masterDimmer={controls.dimmer}
-                />
-              </div>
-            )}
-            
-            {/* Row 2: Sliders/Beat Modifiers - Full Width */}
+        <div className="flex gap-6 h-full">
+          {/* Left Side: Simulator - 1/5 of width when visible */}
+          {showSimulator && (
+            <div className="w-1/5 flex-shrink-0">
+              <LaserSimulator
+                lasers={lasers}
+                showLaserOrigins={controls.showLaserOrigins}
+                hazeDensity={controls.hazeDensity}
+                linearGradient={controls.linearGradient}
+                fixtures={controls.fixtures}
+                masterDimmer={controls.dimmer}
+                strobeRate={controls.strobePulseRate}
+                pulseRate={controls.strobePulseRate}
+                strobeOrPulse={controls.strobeOrPulse}
+              />
+            </div>
+          )}
+          
+          {/* Right Side: Controls - 4/5 of width, or full width when simulator hidden */}
+          <div className={`flex flex-col gap-6 ${showSimulator ? 'flex-grow' : 'w-full'}`}>
+            {/* Row 1: Sliders/Beat Modifiers - Full Available Width */}
             <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
               <Controls 
                 controls={controls} 
@@ -253,7 +124,7 @@ function App() {
               />
             </div>
             
-            {/* Row 3: Visual Presets and Movement Controls */}
+            {/* Row 2: Visual Presets and Movement Controls */}
             <div className="grid grid-cols-2 gap-6">
               <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
                 <Controls 
@@ -271,7 +142,7 @@ function App() {
               </div>
             </div>
           </div>
-        )}
+        </div>
       </main>
       
       {/* Config Modal - Made Much Wider */}
