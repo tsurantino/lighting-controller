@@ -133,4 +133,4 @@ def handle_control_change(data):
 
 if __name__ == '__main__':
     print("Starting Flask server at http://localhost:5000")  # Always print startup message
-    socketio.run(app, host='0.0.0.0', port=5000, debug=DEBUG)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=DEBUG, allow_unsafe_werkzeug=True)

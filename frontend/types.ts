@@ -46,7 +46,6 @@ export enum EffectApplication {
 }
 
 export type BeatRate = 'Off' | '1/3' | '1/2' | '1' | '3' | '4';
-export type ViewMode = 'pane' | 'landscape';
 
 // New fixture types
 export enum FixtureType {
@@ -216,10 +215,13 @@ export interface LaserSimulatorProps {
     SH1: ShockerFixture;
     SH2: ShockerFixture;
   };
-  masterDimmer: number; // ✅ 0-100 (master brightness control)
-  saberTargets?: {      // ✅ Optional custom targets for saber beams
+  masterDimmer: number; // 0-100 (master brightness control)
+  saberTargets?: {      // Optional custom targets for saber beams
     SA1?: { x: number; y: number };
     SA2?: { x: number; y: number };
     SA3?: { x: number; y: number };
   };
+  strobeRate?: number;  // 0-100 strobe rate
+  pulseRate?: number;   // 0-100 pulse rate
+  strobeOrPulse?: 'strobe' | 'pulse'; // Which effect is active
 }

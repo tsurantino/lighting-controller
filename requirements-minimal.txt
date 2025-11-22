@@ -1,0 +1,11 @@
+# Minimal requirements for Flask web server only
+Flask==3.0.0
+Flask-SocketIO==5.3.6
+python-osc==1.8.3
+
+# These are automatically installed by Flask-SocketIO
+python-socketio>=5.0.0
+python-engineio>=4.0.0
+
+# Optional but recommended for better WebSocket performance
+eventlet==0.33.3

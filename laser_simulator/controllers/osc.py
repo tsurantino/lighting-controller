@@ -66,7 +66,7 @@ class OSCController:
             except Exception as e:
                 print(f"OSC server error: {e}")
     
-    def _register_handlers(self, disp: dispatcher.Dispatcher) -> None:
+    def _register_handlers(self, disp: Any) -> None:
         """Register OSC message handlers."""
         prefix = self.config.address_prefix
         

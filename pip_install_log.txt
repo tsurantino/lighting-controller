@@ -1,0 +1,75 @@
+(venv) tsurantino-mac:lighting-controller tsurantino$ pip install -r requirements.txt 
+Collecting Flask==3.0.0 (from -r requirements.txt (line 2))
+  Downloading flask-3.0.0-py3-none-any.whl.metadata (3.6 kB)
+Collecting Flask-SocketIO==5.3.6 (from -r requirements.txt (line 3))
+  Downloading Flask_SocketIO-5.3.6-py3-none-any.whl.metadata (2.6 kB)
+Collecting python-osc==1.8.3 (from -r requirements.txt (line 6))
+  Using cached python_osc-1.8.3-py3-none-any.whl.metadata (6.2 kB)
+Collecting pygame==2.5.2 (from -r requirements.txt (line 7))
+  Downloading pygame-2.5.2.tar.gz (15.8 MB)
+     ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 15.8/15.8 MB 9.6 MB/s  0:00:01
+  Installing build dependencies ... done
+  Getting requirements to build wheel ... error
+  error: subprocess-exited-with-error
+  
+  × Getting requirements to build wheel did not run successfully.
+  │ exit code: 1
+  ╰─> [48 lines of output]
+      Skipping Cython compilation
+      
+      
+      WARNING, No "Setup" File Exists, Running "buildconfig/config.py"
+      Using Darwin configuration...
+      
+      /bin/sh: sdl2-config: command not found
+      /bin/sh: sdl2-config: command not found
+      /bin/sh: sdl2-config: command not found
+      
+      ---
+      For help with compilation see:
+          https://www.pygame.org/wiki/MacCompile
+      To contribute to pygame development see:
+          https://www.pygame.org/contribute.html
+      ---
+      
+      Traceback (most recent call last):
+        File "/Users/tsurantino/Documents/projects/lightcontrol-prefe/lighting-controller/venv/lib/python3.13/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 389, in <module>
+          main()
+          ~~~~^^
+        File "/Users/tsurantino/Documents/projects/lightcontrol-prefe/lighting-controller/venv/lib/python3.13/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 373, in main
+          json_out["return_val"] = hook(**hook_input["kwargs"])
+                                   ~~~~^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/Users/tsurantino/Documents/projects/lightcontrol-prefe/lighting-controller/venv/lib/python3.13/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py", line 143, in get_requires_for_build_wheel
+          return hook(config_settings)
+        File "/private/var/folders/py/0f14k6jn15jfpnd9wb7l2dl800d0qj/T/pip-build-env-64pt10d7/overlay/lib/python3.13/site-packages/setuptools/build_meta.py", line 331, in get_requires_for_build_wheel
+          return self._get_build_requires(config_settings, requirements=[])
+                 ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/private/var/folders/py/0f14k6jn15jfpnd9wb7l2dl800d0qj/T/pip-build-env-64pt10d7/overlay/lib/python3.13/site-packages/setuptools/build_meta.py", line 301, in _get_build_requires
+          self.run_setup()
+          ~~~~~~~~~~~~~~^^
+        File "/private/var/folders/py/0f14k6jn15jfpnd9wb7l2dl800d0qj/T/pip-build-env-64pt10d7/overlay/lib/python3.13/site-packages/setuptools/build_meta.py", line 512, in run_setup
+          super().run_setup(setup_script=setup_script)
+          ~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/private/var/folders/py/0f14k6jn15jfpnd9wb7l2dl800d0qj/T/pip-build-env-64pt10d7/overlay/lib/python3.13/site-packages/setuptools/build_meta.py", line 317, in run_setup
+          exec(code, locals())
+          ~~~~^^^^^^^^^^^^^^^^
+        File "<string>", line 409, in <module>
+        File "/private/var/folders/py/0f14k6jn15jfpnd9wb7l2dl800d0qj/T/pip-install-7hi40bb2/pygame_ed0cd813bc88480e8750a8ab780713d7/buildconfig/config.py", line 231, in main
+          deps = CFG.main(**kwds, auto_config=auto)
+        File "/private/var/folders/py/0f14k6jn15jfpnd9wb7l2dl800d0qj/T/pip-install-7hi40bb2/pygame_ed0cd813bc88480e8750a8ab780713d7/buildconfig/config_darwin.py", line 126, in main
+          [DependencyProg('SDL', 'SDL_CONFIG', 'sdl2-config', '2.0', ['sdl'])],
+           ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        File "/private/var/folders/py/0f14k6jn15jfpnd9wb7l2dl800d0qj/T/pip-install-7hi40bb2/pygame_ed0cd813bc88480e8750a8ab780713d7/buildconfig/config_unix.py", line 43, in __init__
+          self.ver = config[0].strip()
+                     ~~~~~~^^^
+      IndexError: list index out of range
+      [end of output]
+  
+  note: This error originates from a subprocess, and is likely not a problem with pip.
+error: subprocess-exited-with-error
+
+× Getting requirements to build wheel did not run successfully.
+│ exit code: 1
+╰─> See above for output.
+
+note: This error originates from a subprocess, and is likely not a problem with pip.
